@@ -1,5 +1,17 @@
 # from USD/cmake/macros/Public.cmake
-function(pxr_katana_nodetypes NODE_TYPES)
+function(pxr_katana_nodetypes)
+    set(options)
+    set(oneValueArgs)
+    set(multiValueArgs
+        NODE_TYPES
+        UPGRADE_SCRIPTS
+    )
+    cmake_parse_arguments(args
+        "${options}"
+        "${oneValueArgs}"
+        "${multiValueArgs}"
+        ${ARGN}
+    )
     if(PXR_INSTALL_SUBDIR)
         set(installDir ${PXR_INSTALL_SUBDIR}/plugin/Plugins/${pyModuleName})
     else()
@@ -9,15 +21,23 @@ function(pxr_katana_nodetypes NODE_TYPES)
     set(pyFiles "")
     set(importLines "")
 
-    foreach (nodeType ${NODE_TYPES})
+    foreach (nodeType ${args_NODE_TYPES})
         list(APPEND pyFiles ${nodeType}.py)
-        set(importLines "from . import ${nodeType}\n")
+        string(APPEND importLines "from . import ${nodeType}\n")
     endforeach()
 
     foreach(pyfile ${pyFiles})
         _replace_root_python_module(
             ${CMAKE_CURRENT_SOURCE_DIR}/${pyfile}
             ${installDir}/${pyfile}
+        )
+    endforeach()
+
+    # Install the upgrade scripts and add extra imports to the init file.
+    foreach(upgradeScript ${args_UPGRADE_SCRIPTS})
+        _replace_root_python_module(
+            ${CMAKE_CURRENT_SOURCE_DIR}/${upgradeScript}.py
+            ${installDir}/${upgradeScript}.py
         )
     endforeach()
 
