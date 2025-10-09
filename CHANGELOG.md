@@ -1,13 +1,12 @@
 # Change List
 
-# 23.05_fn9
+# 23.05_fn9 - 24.05_fn6
 
 - ID-605970 - The UsdIn node assetResolverContext parameter has been upgraded to assetResolverContexts and been upgraded from a `string` to a `stringarray` parameter.  The upgrade script can be found in the KatanaUsdPlugins repository.
 
   If you build a custom KatanaUsdPlugins, it is strongly recommended to cherry pick the changes if you plan on using Katana 6.5v8, 7.0v8, 7.5v5 or 8.0v5.
 
   The internal Katana document version for this change is 7.0.5.2.
-- ID-600172 - The ids attribute are now being converted and can be found in the Attributes tab when loading in point instancer scene locations through the UsdIn node.
 
 # 24.05_fn5
 
