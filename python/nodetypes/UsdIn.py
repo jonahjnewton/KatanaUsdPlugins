@@ -53,13 +53,21 @@ nb.setHintsForParameter('fileName', {
     'fileTypes':'usd|usda|usdc|usdz',
 })
 
-gb.set('assetResolverContext', '')
-nb.setHintsForParameter('assetResolverContext', {
-    'help': """
+gb.set('assetResolverContexts', FnAttribute.StringAttribute([], 2))
+nb.setHintsForParameter(
+    'assetResolverContexts',
+    {
+        'help': """
         Sets the Asset Resolver Context which will be bound when opening the stage. If this is not
-        specified, a default context is used based on the Asset Resolver for the fileName parameter.
+        specified, a default context is used based on the Asset Resolver for the <b>fileName</b>
+        parameter. This parameter must always be of tuple size 2. If using the primary Asset
+        Resolver Context, leave the first element empty. Otherwise, the elements match the vector of
+        pairs which would be passed to <code>ArResolver::CreateContextFromStrings()</code>.
     """,
-})
+        'resize': True,
+        'tupleSize': 2,
+    },
+)
 
 gb.set('location', '/root/world/geo')
 nb.setHintsForParameter('location', {
@@ -213,8 +221,11 @@ def buildUsdInOpArgsAtGraphState(self, graphState):
 
     gb.set('fileName',
             self.getParameter('fileName').getValue(frameTime))
-    gb.set('assetResolverContext',
-            self.getParameter('assetResolverContext').getValue(frameTime))
+
+    if arContextsParameter := self.getParameter('assetResolverContexts'):
+        contexts = [child.getValue(frameTime) for child in arContextsParameter.getChildren()]
+        gb.set('assetResolverContexts', FnAttribute.StringAttribute(contexts, 2))
+
     gb.set('location',
             self.getParameter('location').getValue(frameTime))
 
@@ -359,8 +370,7 @@ def buildOpChain(self, interface):
 
         gb = FnAttribute.GroupBuilder()
 
-
-        for name in ('fileName', 'isolatePath', 'assetResolverContext'):
+        for name in ('fileName', 'isolatePath', 'assetResolverContexts'):
             gb.set(name, interface.buildAttrFromParam(
                     self.getParameter(name)))
 
