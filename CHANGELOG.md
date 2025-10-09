@@ -1,5 +1,10 @@
 # Change List
 
+# 25.08_fn1
+
+- ID-604744 - Various upgrades for USD 25.08 support
+- ID-601120 - Boost regex and Boost filesystem usage has been replaced with STL counterparts.
+
 # 23.05_fn9 - 24.05_fn6 - 24.05_PySide_fn5
 
 - ID-605970 - The UsdIn node assetResolverContext parameter has been upgraded to assetResolverContexts and been upgraded from a `string` to a `stringarray` parameter.  The upgrade script can be found in the KatanaUsdPlugins repository.

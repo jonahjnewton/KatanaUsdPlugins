@@ -29,6 +29,7 @@
 //
 #include "usdKatana/cache.h"
 
+#include <regex>
 #include <set>
 #include <utility>
 #include <vector>
@@ -45,8 +46,6 @@
 #include <pxr/usd/usd/prim.h>
 #include <pxr/usd/usd/stageCacheContext.h>
 #include <pxr/usd/usdUtils/stageCache.h>
-
-#include <boost/regex.hpp>
 
 #include <pystring/pystring.h>
 
@@ -458,8 +457,7 @@ UsdKatanaCache::_SetMutedLayers(
     SdfLayerHandleVector stageLayers = stage->GetUsedLayers();
 
     bool regexIsEmpty = layerRegex == "" || layerRegex == "^$";
-    
-    boost::regex regex(layerRegex);
+    const std::regex regex(layerRegex);
 
     TF_FOR_ALL(stageLayer, stageLayers)
     {
@@ -474,7 +472,7 @@ UsdKatanaCache::_SetMutedLayers(
         
         if (!regexIsEmpty)
         {
-            if (boost::regex_match(layerIdentifier, regex))
+            if (std::regex_match(layerIdentifier, regex))
             {
                 match = true;
             }

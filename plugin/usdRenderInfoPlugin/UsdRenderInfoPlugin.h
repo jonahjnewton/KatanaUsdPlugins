@@ -30,7 +30,6 @@
 #include <FnRendererInfo/plugin/RendererInfoBase.h>
 
 #include <pxr/pxr.h>
-#include <pxr/usd/ndr/registry.h>
 #include <pxr/usd/sdr/registry.h>
 #include <pxr/usd/sdr/shaderProperty.h>
 

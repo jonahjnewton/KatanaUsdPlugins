@@ -43,8 +43,6 @@
 #include <FnGeolib/util/Path.h>
 #include <FnLogging/FnLogging.h>
 
-#include <boost/unordered_set.hpp>
-
 #include <pystring/pystring.h>
 
 #include "usdKatana/attrMap.h"

@@ -31,7 +31,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <map>
+#include <regex>
 #include <sstream>
 #include <unordered_map>
 
@@ -75,9 +77,6 @@
 #include <pxr/usd/usdUtils/pipeline.h>
 
 #include <FnLogging/FnLogging.h>
-
-#include <boost/filesystem.hpp>
-#include <boost/regex.hpp>
 
 #include "vtKatana/array.h"
 #include "vtKatana/value.h"
@@ -227,30 +226,30 @@ static const std::string _ResolveAssetPath(const SdfAssetPath& assetPath)
         // assetPath points to a UDIM set.  We find the first tile, with <UDIM>
         // replaced by an ID 1xxx, resolve that path, and return the resolved
         // path with 1xxx re-replaced again with <UDIM>.
-        boost::filesystem::path boostPath(rawPath);
-        boost::filesystem::path dirPath = boostPath.parent_path();
-        if (boost::filesystem::exists(dirPath))
+        const std::filesystem::path fPath(rawPath);
+        const std::filesystem::path dirPath = fPath.parent_path();
+        if (std::filesystem::exists(dirPath))
         {
-            boost::filesystem::path filterPath(rawPath);
+            const std::filesystem::path filterPath(rawPath);
             std::string filter = filterPath.filename().string();
             size_t filterSize = filter.size();
             filter.replace(udimIdx - dirPath.string().size() - 1, 6,
                            "1\\d\\d\\d");
 
-            const boost::regex regexFilter(filter);
+            const std::regex regexFilter(filter);
 
-            boost::filesystem::directory_iterator beginIt{dirPath};
-            boost::filesystem::directory_iterator endIt;
+            const std::filesystem::directory_iterator beginIt{dirPath};
+            const std::filesystem::directory_iterator endIt;
             for (auto it = beginIt; it != endIt; ++it)
             {
-                if (!boost::filesystem::is_regular_file(it->status()))
+                if (!std::filesystem::is_regular_file(it->status()))
                     continue;
 
-                boost::smatch what;
+                std::smatch what;
                 const std::string path = it->path().string();
                 const std::string filename = it->path().filename().string();
                 if ((filename.size() == (filterSize - 2)) &&
-                    boost::regex_match(filename, what, regexFilter))
+                    std::regex_match(filename, what, regexFilter))
                 {
                     ArResolverScopedCache resolverCache;
                     ArResolver& resolver = ArGetResolver();
@@ -1584,7 +1583,7 @@ void UsdKatanaUtils::ShaderToAttrsBySdr(const UsdPrim& prim,
     shaderBuilder.SetUSDTimeCode(currentTimeCode);
     const std::string& shaderContext = sdrNode->GetContext().GetString();
 
-    for (const auto& inputNameToken : sdrNode->GetInputNames())
+    for (const auto& inputNameToken : sdrNode->GetShaderInputNames())
     {
         // This block is for building up a vector of potential attribute names
         // (potentialUsdAttributeNames) inside the usd prim being read. Katana supports having
@@ -1739,7 +1738,7 @@ SdrShaderNodeConstPtr UsdKatanaUtils::GetShaderNodeFromShaderId(const std::strin
     if (!sdrNode)
     {
         sdrNode =
-            sdrRegistry.GetShaderNodeByName(TfToken(shaderId), {}, NdrVersionFilterAllVersions);
+            sdrRegistry.GetShaderNodeByName(TfToken(shaderId), {}, SdrVersionFilterAllVersions);
     }
     if (!sdrNode)
     {

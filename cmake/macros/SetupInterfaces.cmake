@@ -63,13 +63,11 @@ function(add_boost_interface)
     find_package(Boost
         COMPONENTS
             atomic # Required by thread
-            filesystem
             ${Boost_PYTHON_COMPONENT}
             chrono # Required by thread
             date_time
             thread
             system
-            regex
         REQUIRED)
 endfunction(add_boost_interface) # add_boost_interface
 

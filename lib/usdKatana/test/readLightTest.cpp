@@ -28,9 +28,9 @@ protected:
         UsdStageRefPtr stage = UsdStage::Open(assetPath);
         UsdShadeShader shaderDef = UsdShadeShader::Get(stage, SdfPath("/FnTestRectLight"));
 
-        auto results = UsdShadeShaderDefUtils::GetNodeDiscoveryResults(
+        const auto results = UsdShadeShaderDefUtils::GetDiscoveryResults(
             shaderDef, stage->GetRootLayer()->GetRealPath());
-        for (auto& result : results)
+        for (const auto& result : results)
         {
             _sdrRegistry->AddDiscoveryResult(result);
         }

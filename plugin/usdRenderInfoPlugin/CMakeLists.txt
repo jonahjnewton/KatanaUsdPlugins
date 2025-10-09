@@ -26,7 +26,6 @@ pxr_plugin(${PXR_PACKAGE}
     KATANA_PLUGIN
     LIBRARIES
         usdShade
-        ndr
         sdr
         sdf
         gf

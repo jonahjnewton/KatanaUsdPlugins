@@ -36,13 +36,12 @@
 #include <pxr/base/tf/pyResultConversions.h>
 #include <pxr/base/tf/pyUtils.h>
 #include <pxr/base/tf/wrapTypeHelpers.h>
+#include <pxr/external/boost/python.hpp>
 #include <pxr/usd/sdf/primSpec.h>
 #include <pxr/usd/usd/pyConversions.h>
 #include <pxr/usd/usd/schemaBase.h>
 
-#include <boost/python.hpp>
-
-using namespace boost::python;
+using namespace PXR_BOOST_NAMESPACE::python;
 
 PXR_NAMESPACE_USING_DIRECTIVE
 

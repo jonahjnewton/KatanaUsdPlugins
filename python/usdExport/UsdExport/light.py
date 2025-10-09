@@ -113,13 +113,13 @@ def WriteLight(stage, lightSdfPath, materialAttrs):
         renderer = rendererPrefixMapping.get(renderer, renderer)
 
         for attrName, attr in lightShaderAttrs.childList():
-            nodeInput = node.GetInput(attrName)
+            nodeInput = node.GetShaderInput(attrName)
 
             # If we cannot find an input name directly, we must take some extra
             # steps.
             if nodeInput is None:
-                for tmpInputName in node.GetInputNames():
-                    tmpInput = node.GetInput(tmpInputName)
+                for tmpInputName in node.GetShaderInputNames():
+                    tmpInput = node.GetShaderInput(tmpInputName)
                     # Check the attribute name against the implementation name.
                     if attrName == tmpInput.GetImplementationName():
                         attrName = tmpInputName
@@ -254,8 +254,7 @@ def _CreatePrefixedAttribute(prim, nodeInput, renderer = "", context = ""):
             attributeName += nodeInputName
     attributeName = f"inputs:{attributeName}"
 
-    attr = prim.CreateAttribute(
-        attributeName, nodeInput.GetTypeAsSdfType()[0])
+    attr = prim.CreateAttribute(attributeName, nodeInput.GetTypeAsSdfType().GetSdfType())
     if nodeInput:
         attr.SetCustom(False)
     return attr
@@ -271,7 +270,7 @@ def _WriteCustomParameter(prim, paramName, fnAttr, paramType = None):
 
 def _ResolveLightPrimType(shaderName):
     # Try to retrive from Sdr node metadata.
-    node = Sdr.Registry().GetNodeByName(shaderName)
+    node = Sdr.Registry().GetShaderNodeByName(shaderName)
     if node:
         typedSchema = node.GetMetadata().get("typedSchemaForAttrPruning", None)
         if typedSchema and Usd.SchemaRegistry().IsConcrete(typedSchema):

@@ -75,9 +75,9 @@ def GetShaderNodeFromRegistry(shaderIdentifier, sourceType=None):
     # for a given sourceType given a target we try to convert into the known sourceTypes as
     # per their hydra plug-ins.
     return (
-        sdrRegistry.GetNodeByIdentifierAndType(shaderIdentifier, sourceType)
+        sdrRegistry.GetShaderNodeByIdentifierAndType(shaderIdentifier, sourceType)
         if sourceType
-        else sdrRegistry.GetNodeByIdentifier(shaderIdentifier)
+        else sdrRegistry.GetShaderNodeByIdentifier(shaderIdentifier)
     )
 
 
@@ -104,7 +104,7 @@ def GetSdrShaderFromShaderTypeAndTarget(katShaderType, target=None):
                 break
     if not shader:
         sdrRegistry = Sdr.Registry()
-        sdrNodes = sdrRegistry.GetNodesByIdentifier(katShaderType)
+        sdrNodes = sdrRegistry.GetShaderNodesByIdentifier(katShaderType)
         if sdrNodes:
             return sdrNodes[0]
     return shader

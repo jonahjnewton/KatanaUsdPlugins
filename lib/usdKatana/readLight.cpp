@@ -36,7 +36,6 @@
 
 #include <pxr/base/tf/stringUtils.h>
 #include <pxr/pxr.h>
-#include <pxr/usd/ndr/declare.h>
 #include <pxr/usd/sdr/registry.h>
 #include <pxr/usd/sdr/shaderProperty.h>
 #include <pxr/usd/usdLux/boundableLightBase.h>
