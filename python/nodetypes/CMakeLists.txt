@@ -1,4 +1,5 @@
 pxr_katana_nodetypes(
-    UsdIn
+    NODE_TYPES
+        UsdIn
 )
 

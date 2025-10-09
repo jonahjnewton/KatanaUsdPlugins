@@ -215,13 +215,24 @@ static UsdKatanaUsdInArgsRefPtr InitUsdInArgs(const FnKat::GroupAttribute& opArg
         opArgs.getChildByName("isolatePath")).getValue("", false);
 
     {
-        const std::string assetResolverContextStr =
-            FnKat::StringAttribute(opArgs.getChildByName("assetResolverContext"))
-                .getValue("", false);
+        const FnKat::StringAttribute resolverContextsAttr =
+            opArgs.getChildByName("assetResolverContexts");
+        // Early out if not in pairs.
+        if (resolverContextsAttr.getNumberOfValues() % 2 != 0)
+        {
+            return ab.buildWithError(
+                "UsdIn: Invalid assetResolverContexts. Must have a tuple size of 2.");
+        }
+
+        std::vector<std::pair<std::string, std::string>> arContextStrings;
+        const auto sample = resolverContextsAttr.getNearestSample(0.0f);
+        for (size_t i = 0; i < sample.size(); i = i + 2)
+        {
+            arContextStrings.emplace_back(sample[i], sample[i + 1]);
+        }
         const ArResolverContext context =
-            assetResolverContextStr.empty()
-                ? ArGetResolver().CreateDefaultContextForAsset(fileName)
-                : ArGetResolver().CreateContextFromString(assetResolverContextStr);
+            arContextStrings.empty() ? ArGetResolver().CreateDefaultContextForAsset(fileName)
+                                     : ArGetResolver().CreateContextFromStrings(arContextStrings);
         const ArResolverContextBinder bind(context);
         ab.stage = UsdKatanaCache::GetInstance().GetStage(fileName,
                                                           sessionAttr,
