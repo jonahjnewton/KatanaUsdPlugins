@@ -137,7 +137,7 @@ TEST_F(ReadLightTest, ReadTypelessMeshLight)
     ASSERT_TRUE(materialAttrs.isValid());
     FnAttribute::StringAttribute lightShaderName = materialAttrs.getChildByName("usdLightShader");
     ASSERT_TRUE(lightShaderName.isValid());
-    ASSERT_EQ(lightShaderName.getValue("", false), "MeshLight");
+    ASSERT_EQ(lightShaderName.getValue("", false), "UsdLuxMeshLight");
     FnAttribute::GroupAttribute lightParamAttrs = materialAttrs.getChildByName("usdLightParams");
     ASSERT_TRUE(lightParamAttrs.isValid());
 

@@ -45,6 +45,7 @@
 #include <pxr/usd/usdLux/domeLight.h>
 #include <pxr/usd/usdLux/geometryLight.h>
 #include <pxr/usd/usdLux/lightAPI.h>
+#include <pxr/usd/usdLux/meshLightAPI.h>
 #include <pxr/usd/usdLux/rectLight.h>
 #include <pxr/usd/usdLux/shadowAPI.h>
 #include <pxr/usd/usdLux/shapingAPI.h>
@@ -122,7 +123,14 @@ void __handleUsdLuxLightTypes(const UsdPrim& prim,
     // ensures prman light manipulators show up with an appropriate size.
     implicitScale = GfVec3d(1);
 
-    if (UsdLuxCylinderLight l = UsdLuxCylinderLight(prim))
+    if (const UsdLuxMeshLightAPI l = UsdLuxMeshLightAPI(prim))
+    {
+        lightShaderAttr = FnAttribute::StringAttribute("UsdLuxMeshLight");
+        const std::string kat_loc =
+            UsdKatanaUtils::ConvertUsdPathToKatLocation(prim.GetPath(), data);
+        lightBuilder.set("sourceMesh", FnKat::StringAttribute(kat_loc));
+    }
+    else if (const UsdLuxCylinderLight l = UsdLuxCylinderLight(prim))
     {
         _SetLightSizeFromRadius(geomBuilder, l.GetRadiusAttr(), currentTimeCode);
         lightShaderAttr = FnAttribute::StringAttribute("UsdLuxCylinderLight");
@@ -148,7 +156,7 @@ void __handleUsdLuxLightTypes(const UsdPrim& prim,
             implicitScale[2] = 2.0 * radius;
         }
     }
-    else if (UsdLuxDiskLight l = UsdLuxDiskLight(prim))
+    else if (const UsdLuxDiskLight l = UsdLuxDiskLight(prim))
     {
         _SetLightSizeFromRadius(geomBuilder, l.GetRadiusAttr(), currentTimeCode);
         lightShaderAttr = FnAttribute::StringAttribute("UsdLuxDiskLight");
@@ -157,18 +165,18 @@ void __handleUsdLuxLightTypes(const UsdPrim& prim,
         l.GetRadiusAttr().Get(&radius, currentTimeCode);
         implicitScale = GfVec3d(2.0 * radius, 2.0 * radius, 1.0);
     }
-    else if (UsdLuxDistantLight l = UsdLuxDistantLight(prim))
+    else if (const UsdLuxDistantLight l = UsdLuxDistantLight(prim))
     {
         lightShaderAttr = FnAttribute::StringAttribute("UsdLuxDistantLight");
         lightBuilder.Set("angle", l.GetAngleAttr()).Set("angleExtent", l.GetAngleAttr());
     }
-    else if (UsdLuxDomeLight l = UsdLuxDomeLight(prim))
+    else if (const UsdLuxDomeLight l = UsdLuxDomeLight(prim))
     {
         lightShaderAttr = FnAttribute::StringAttribute("UsdLuxDomeLight");
         lightBuilder.Set("textureFile", l.GetTextureFileAttr())
             .Set("textureFormat", l.GetTextureFormatAttr());
     }
-    else if (UsdLuxGeometryLight l = UsdLuxGeometryLight(prim))
+    else if (const UsdLuxGeometryLight l = UsdLuxGeometryLight(prim))
     {
         SdfPathVector geo;
         lightShaderAttr = FnAttribute::StringAttribute("UsdLuxGeometryLight");
@@ -181,11 +189,11 @@ void __handleUsdLuxLightTypes(const UsdPrim& prim,
                     "USD geometry light "
                     << prim.GetPath() << "; using first only");
             }
-            std::string kat_loc = UsdKatanaUtils::ConvertUsdPathToKatLocation(geo[0], data);
+            const std::string kat_loc = UsdKatanaUtils::ConvertUsdPathToKatLocation(geo[0], data);
             geomBuilder.set("areaLightGeometrySource", FnKat::StringAttribute(kat_loc));
         }
     }
-    else if (UsdLuxRectLight l = UsdLuxRectLight(prim))
+    else if (const UsdLuxRectLight l = UsdLuxRectLight(prim))
     {
         geomBuilder.Set("light.width", l.GetWidthAttr()).Set("light.height", l.GetHeightAttr());
         lightShaderAttr = FnAttribute::StringAttribute("UsdLuxRectLight");
@@ -200,7 +208,7 @@ void __handleUsdLuxLightTypes(const UsdPrim& prim,
         l.GetHeightAttr().Get(&height, currentTimeCode);
         implicitScale = GfVec3d(width, height, 1.0);
     }
-    else if (UsdLuxSphereLight l = UsdLuxSphereLight(prim))
+    else if (const UsdLuxSphereLight l = UsdLuxSphereLight(prim))
     {
         _SetLightSizeFromRadius(geomBuilder, l.GetRadiusAttr(), currentTimeCode);
         lightShaderAttr = FnAttribute::StringAttribute("UsdLuxSphereLight");

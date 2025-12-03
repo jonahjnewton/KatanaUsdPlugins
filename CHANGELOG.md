@@ -1,5 +1,19 @@
 # Change List
 
+# 25.08_fn2
+
+- ID-608368 - Names for attributes `prmanLightfilterShader` and `prmanLightfilterParams` were incorrectly capitalised as `prmanLightFilterShader` and `prmanLightFilterParams`
+- ID-608485 - A new limitPopulationToModelHierarchy checkbox parameter has been introduced in the UsdIn and UsdToKatana node types. If the parameter (checked by default) is unchecked, the entire USD Stage will be traversed to populate the light and camera global lists on the `/root/world` scene graph location.
+- ID-609505 - When importing RenderMan Light filters from USD to Katana, if the light filter did not have any filterLink collection members, it was not shown as disabled in the light list.
+- ID-609503 - When adopting USD-imported RenderMan Light filters for editing in GafferThree, the light filter parameters were not populated and a Python exception were raised.
+- ID-583839 - Add a UsdIn Op plugin to read prims with `MeshLightAPI` schema applied. This creates a 'Light' child location with a `geometry.areaLightGeometrySource` attribute that points to the source mesh.
+- ID-595534 - Update `cmake_minimum_required` to 3.31
+- ID-609448 - Adds UsdLuxMeshLightAPI args file.
+- ID-609448 - Update ReadLightTest to expect UsdLuxMeshLight shader when reading in a typeless meshlight.
+- ID-607550 - Update lightList with `filterLink` information and fix USD Collection to Katana lightList conversion.
+- ID-609853 - When a light location was converted from USD to Katana via a UsdToKatana or UsdIn node, the Katana `geoShadowEnabled` attribute was not set to the equivalent `collection:shadowLink:includeRoot` USD property.
+- ID-607550 - Allow importing USD light filters that are outside child hierarchy of the light prim. For such light filters, we create light filter reference locations as a child of the light location and specify the imported light filter path as its `referencePath` attribute value. We also populate `lightList` entries to include filter reference entries.
+
 # 25.08_fn1
 
 - ID-604744 - Various upgrades for USD 25.08 support

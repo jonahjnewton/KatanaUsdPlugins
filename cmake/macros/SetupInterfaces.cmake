@@ -60,6 +60,9 @@ function(add_boost_interface)
         endif()
         add_compile_definitions(Boost_NAMESPACE=${Boost_NAMESPACE})
     endif()
+
+    # TODO(rk): Temporary policy downgrade to OLD until we change boost settings in Conan.
+    cmake_policy(SET CMP0167 OLD)
     find_package(Boost
         COMPONENTS
             atomic # Required by thread

@@ -106,10 +106,12 @@ struct UsdKatanaUtils
         const UsdPrim& shadingNode);
 
     // Scan the model hierarchy for models with kind=camera.
-    USDKATANA_API static SdfPathVector FindCameraPaths( const UsdStageRefPtr& stage );
+    USDKATANA_API static SdfPathVector FindCameraPaths(const UsdStageRefPtr& stage,
+                                                       bool traverseModelHierarchyOnly);
 
     /// Discover published lights (without a full scene traversal).
-    USDKATANA_API static SdfPathVector FindLightPaths( const UsdStageRefPtr& stage );
+    USDKATANA_API static SdfPathVector FindLightPaths(const UsdStageRefPtr& stage,
+                                                      bool traverseModelHierarchyOnly);
 
     /// Convert the given SdfPath in the UsdStage to the corresponding
     /// katana location, given a scenegraph generator configuration.

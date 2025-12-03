@@ -34,6 +34,8 @@
 #include <memory>
 #include <sstream>
 
+#include <pxr/base/arch/env.h>
+#include <pxr/base/tf/getenv.h>
 #include <pxr/base/tf/pathUtils.h>
 #include <pxr/pxr.h>
 #include <pxr/usd/ar/resolver.h>
@@ -44,6 +46,8 @@
 #include <pxr/usd/usd/variantSets.h>
 #include <pxr/usd/usdGeom/metrics.h>
 #include <pxr/usd/usdGeom/motionAPI.h>
+#include <pxr/usd/usdLux/lightAPI.h>
+#include <pxr/usd/usdLux/tokens.h>
 
 #include <FnGeolib/op/FnGeolibOp.h>
 #include <FnGeolib/util/Path.h>
@@ -210,6 +214,10 @@ static UsdKatanaUsdInArgsRefPtr InitUsdInArgs(const FnKat::GroupAttribute& opArg
     ab.prePopulate =
         FnKat::IntAttribute(opArgs.getChildByName("prePopulate"))
         .getValue(1 /* default prePopulate=yes */ , false);
+
+    ab.limitPopulationToModelHierarchy =
+        FnKat::IntAttribute(opArgs.getChildByName("limitPopulationToModelHierarchy"))
+            .getValue(static_cast<int>(true), false);
 
     ab.isolatePath = FnKat::StringAttribute(
         opArgs.getChildByName("isolatePath")).getValue("", false);
@@ -570,8 +578,13 @@ public:
 
             {
                 std::string opName;
-                const TfToken typeName = prim.GetTypeName();
-                if (!UsdKatanaUsdInPluginRegistry::FindUsdType(typeName, &opName))
+                const TfToken& typeName = prim.GetTypeName();
+                if (prim.HasAPI(UsdLuxTokens->MeshLightAPI))
+                {
+                    // Op plug-in is registered against the MeshLightAPI schema.
+                    UsdKatanaUsdInPluginRegistry::FindSchema(UsdLuxTokens->MeshLightAPI, &opName);
+                }
+                else if (!UsdKatanaUsdInPluginRegistry::FindUsdType(typeName, &opName))
                 {
                     // If there is no type registered, we search through the
                     // applied schemas to see if one of those has an op
@@ -579,7 +592,7 @@ public:
                     // schemas to be registered against an import Op.
                     const auto& appliedSchemas = prim.GetAppliedSchemas();
                     bool foundRegisteredSchema = false;
-                    for (auto& appliedSchemaName : appliedSchemas)
+                    for (const auto& appliedSchemaName : appliedSchemas)
                     {
                         if (UsdKatanaUsdInPluginRegistry::FindSchema(appliedSchemaName, &opName))
                         {
@@ -1011,6 +1024,19 @@ public:
                     interface.createChild(
                         childName,
                         "",
+                        FnKat::GroupBuilder()
+                            .update(opArgs)
+                            .set("staticScene", opArgs.getChildByName("staticScene.c." + childName))
+                            .build(),
+                        FnKat::GeolibCookInterface::ResetRootFalse,
+                        new UsdKatanaUsdInPrivateData(child, usdInArgs, privateData),
+                        UsdKatanaUsdInPrivateData::Delete);
+                }
+                else
+                {
+                    interface.createChild(
+                        childName,
+                        "UsdInCore_LightFilterOp",
                         FnKat::GroupBuilder()
                             .update(opArgs)
                             .set("staticScene", opArgs.getChildByName("staticScene.c." + childName))
@@ -1522,8 +1548,24 @@ public:
             return;
         }
 
+        // If set, this allows for better traversal for global attributes (camera list and light
+        // lists) by utilizing USD Prim children filters to check for prims in the model hierarchy
+        // only, rather than the default Prim child traversal.
+        bool traverseModelHierarchyOnly{usdInArgs->GetLimitPopulationToModelHierarchy()};
+        {
+            static const bool s_hasEnv{ArchHasEnv("KATANA_USD_GLOBALS_TRAVERSE_MODEL_HIERARCHY")};
+            if (s_hasEnv)
+            {
+                static const bool s_traverseModelHierarchyOnly{
+                    TfGetenvBool("KATANA_USD_GLOBALS_TRAVERSE_MODEL_HIERARCHY", true)};
+
+                traverseModelHierarchyOnly = s_traverseModelHierarchyOnly;
+            }
+        }
+
         // Extract camera paths.
-        SdfPathVector cameraPaths = UsdKatanaUtils::FindCameraPaths(stage);
+        const SdfPathVector cameraPaths{
+            UsdKatanaUtils::FindCameraPaths(stage, traverseModelHierarchyOnly)};
         FnKat::StringBuilder cameraListBuilder;
         for (const SdfPath& cameraPath : cameraPaths)
         {
@@ -1550,7 +1592,8 @@ public:
         const std::string& isolatePathString = usdInArgs->GetIsolatePath();
         const SdfPath isolatePath =
             isolatePathString.empty() ? SdfPath::AbsoluteRootPath() : SdfPath(isolatePathString);
-        SdfPathVector lightPaths = UsdKatanaUtils::FindLightPaths(stage);
+        const SdfPathVector lightPaths{
+            UsdKatanaUtils::FindLightPaths(stage, traverseModelHierarchyOnly)};
         stage->LoadAndUnload(SdfPathSet(lightPaths.begin(), lightPaths.end()), SdfPathSet());
         UsdKatanaUtilsLightListEditor lightListEditor(interface, usdInArgs);
         for (const SdfPath& lightPath : lightPaths)
@@ -1562,6 +1605,30 @@ public:
             }
         }
 
+        for (const SdfPath& lightPath : lightPaths)
+        {
+            const UsdPrim prim{stage->GetPrimAtPath(lightPath)};
+            if (prim.IsValid() && prim.HasAPI<UsdLuxLightAPI>())
+            {
+                const UsdLuxLightAPI lightPrim(prim);
+                SdfPathVector filterPaths;
+                lightPrim.GetFiltersRel().GetForwardedTargets(&filterPaths);
+                for (const auto& filterPath : filterPaths)
+                {
+                    if (filterPath.GetParentPath() != lightPath)
+                    {
+                        const SdfPath filterReferencePath(lightPath.GetString() + "/" +
+                                                          filterPath.GetName() + "Reference");
+                        lightListEditor.SetPath(filterReferencePath);
+                        lightListEditor.Set("path",
+                                            lightListEditor.GetLocation(filterReferencePath));
+                        lightListEditor.Set("type", "light filter reference");
+                        lightListEditor.Set("referencePath",
+                                            lightListEditor.GetLocation(filterPath));
+                    }
+                }
+            }
+        }
         lightListEditor.Build();
     }
 };
