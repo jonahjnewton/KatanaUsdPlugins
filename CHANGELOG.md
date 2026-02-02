@@ -1,5 +1,10 @@
 # Change List
 
+# 25.08_fn3
+
+- ID-610644 - When lightLink or shadowLink collection's includeRoot attribute was set to False, and the membershipExpression and includes/excludes properties were set, includes/excludes values were not converted to corresponding lightLinking onCEL/offCEL attributes.
+- ID-610996 - UsdInBootstrapOp and UsdInMaterialGroupBootsrapOp have been removed since they were long since deprecated and contained unreachable code.
+
 # 25.08_fn2
 
 - ID-608368 - Names for attributes `prmanLightfilterShader` and `prmanLightfilterParams` were incorrectly capitalised as `prmanLightFilterShader` and `prmanLightFilterParams`

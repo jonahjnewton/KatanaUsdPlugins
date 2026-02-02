@@ -2295,7 +2295,9 @@ bool UsdKatanaUtilsLightListAccess::SetLinks(const UsdCollectionAPI& collectionA
         collectionAPI.GetIncludeRootAttr().Get(&isLinked);
     }
     const UsdCollectionAPI::MembershipQuery query = collectionAPI.ComputeMembershipQuery();
-    if (!isLinked && query.HasExpression())
+    // same as using UsdCollectionAPI::IsInRelationshipsMode() which is available from 24.11
+    const bool isInRelationshipsMode{query.UsesPathExpansionRuleMap()};
+    if (!isLinked && !isInRelationshipsMode)
     {
         const SdfPathSet includedPaths{
             UsdCollectionAPI::ComputeIncludedPaths(query, _usdInArgs->GetStage())};

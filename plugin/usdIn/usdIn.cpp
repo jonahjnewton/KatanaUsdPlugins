@@ -1150,143 +1150,6 @@ bool UsdInOp::_hasSiteKinds = false;
 
 //-----------------------------------------------------------------------------
 
-/*
- * DEPRECATED
- * This op bootstraps the primary UsdIn op in order to have
- * GeolibPrivateData available at the root op location in UsdIn. Since the
- * GeolibCookInterface API does not currently have the ability to pass
- * GeolibPrivateData via execOp, and we must exec all of the registered plugins
- * to process USD prims, we instead pre-build the GeolibPrivateData for the
- * root location to ensure it is available.
- */
-class UsdInBootstrapOp : public FnKat::GeolibOp
-{
-
-public:
-
-    static void setup(FnKat::GeolibSetupInterface &interface)
-    {
-        interface.setThreading(
-                FnKat::GeolibSetupInterface::ThreadModeConcurrent);
-    }
-
-    static void cook(FnKat::GeolibCookInterface &interface)
-    {
-        ERROR("UsdInBootstrapOp is deprecated please use ExecuteOpDirectExecFnc instead.");
-        return;
-
-        interface.stopChildTraversal();
-
-        boost::shared_lock<boost::upgrade_mutex> 
-            readerLock(UsdKatanaGetStageLock());
-            
-        FnKat::GroupAttribute additionalOpArgs;
-        UsdKatanaUsdInArgsRefPtr usdInArgs =
-            InitUsdInArgs(interface.getOpArg(), additionalOpArgs, interface.getRootLocationPath());
-
-        if (!usdInArgs) {
-            ERROR("Could not initialize UsdIn usdInArgs.");
-            return;
-        }
-        
-        if (!usdInArgs->GetErrorMessage().empty())
-        {
-            ERROR("%s", usdInArgs->GetErrorMessage().c_str());
-            return;
-        }
-
-        FnKat::GroupAttribute opArgs = FnKat::GroupBuilder()
-            .update(interface.getOpArg())
-            .deepUpdate(additionalOpArgs)
-            .set("setOpArgsToInfo", FnAttribute::IntAttribute(1))
-            .build();
-
-        // Extract the basename (string after last '/') from the location
-        // the UsdIn op is configured to run at such that we can create
-        // that child and exec the UsdIn op on it.
-        //
-        std::vector<std::string> tokens;
-        pystring::split(usdInArgs->GetRootLocationPath(), tokens, "/");
-
-        if (tokens.empty())
-        {
-            ERROR(
-                "Could not initialize UsdIn op with "
-                "UsdIn.Bootstrap op.");
-            return;
-        }
-
-        const std::string& rootName = tokens.back();
-
-        interface.createChild(rootName, "UsdIn", opArgs, FnKat::GeolibCookInterface::ResetRootTrue,
-                              new UsdKatanaUsdInPrivateData(usdInArgs->GetRootPrim(), usdInArgs,
-                                                            NULL /* parentData */),
-                              UsdKatanaUsdInPrivateData::Delete);
-    }
-
-};
-
-/*
- * DEPRECATED
- * This op bootstraps the primary UsdIn op in order to have
- * GeolibPrivateData available at the root op location in UsdIn. Since the
- * GeolibCookInterface API does not currently have the ability to pass
- * GeolibPrivateData via execOp, and we must exec all of the registered plugins
- * to process USD prims, we instead pre-build the GeolibPrivateData for the
- * root location to ensure it is available.
- */
-class UsdInMaterialGroupBootstrapOp : public FnKat::GeolibOp
-{
-
-public:
-
-    static void setup(FnKat::GeolibSetupInterface &interface)
-    {
-        interface.setThreading(
-                FnKat::GeolibSetupInterface::ThreadModeConcurrent);
-    }
-
-    static void cook(FnKat::GeolibCookInterface &interface)
-    {
-        ERROR(
-            "UsdInMaterialGroupBootstrapOp is deprecated please use ExecuteOpDirectExecFnc "
-            "instead.");
-        return;
-
-        interface.stopChildTraversal();
-
-        boost::shared_lock<boost::upgrade_mutex> 
-            readerLock(UsdKatanaGetStageLock());
-            
-        FnKat::GroupAttribute additionalOpArgs;
-        UsdKatanaUsdInArgsRefPtr usdInArgs =
-            InitUsdInArgs(interface.getOpArg(), additionalOpArgs, interface.getRootLocationPath());
-
-        if (!usdInArgs) {
-            ERROR("Could not initialize UsdIn usdInArgs.");
-            return;
-        }
-        
-        if (!usdInArgs->GetErrorMessage().empty())
-        {
-            ERROR("%s", usdInArgs->GetErrorMessage().c_str());
-            return;
-        }
-
-        FnKat::GroupAttribute opArgs = FnKat::GroupBuilder()
-            .update(interface.getOpArg())
-            .deepUpdate(additionalOpArgs)
-            .build();
-
-        UsdKatanaUsdInPrivateData privateData(usdInArgs->GetRootPrim(), usdInArgs,
-                                              NULL /* parentData */);
-
-        UsdKatanaUsdInPluginRegistry::ExecuteOpDirectExecFnc("UsdInCore_LooksGroupOp", privateData,
-                                                             opArgs, interface);
-    }
-
-};
-
 class UsdInBuildIntermediateOp : public FnKat::GeolibOp
 {
 public:
@@ -1300,51 +1163,6 @@ public:
     {
         UsdKatanaUsdInPrivateData* privateData =
             static_cast<UsdKatanaUsdInPrivateData*>(interface.getPrivateData());
-
-// If we are exec'ed from katana 2.x from an op which doesn't have
-// UsdKatanaUsdInPrivateData, we need to build some. We normally avoid
-// this case by using the execDirect -- but some ops need to call
-// UsdInBuildIntermediateOp via execOp. In 3.x, they can (and are
-// required to) provide the private data.
-#if KATANA_VERSION_MAJOR < 3
-        
-        // We may be constructing the private data locally -- in which case
-        // it will not be destroyed by the Geolib runtime.
-        // This won't be used directly but rather just filled if the private
-        // needs to be locally built.
-        std::unique_ptr<UsdKatanaUsdInPrivateData> localPrivateData;
-
-        if (!privateData)
-        {
-            
-            FnKat::GroupAttribute additionalOpArgs;
-            auto usdInArgs = UsdInOp::InitUsdInArgs(interface.getOpArg(), additionalOpArgs,
-                                                    interface.getRootLocationPath());
-            auto opArgs = FnKat::GroupBuilder()
-                .update(interface.getOpArg())
-                .deepUpdate(additionalOpArgs)
-                .build();
-            
-            // Construct local private data if none was provided by the parent.
-            // This is a legitmate case for the root of the scene -- most
-            // relevant with the isolatePath pointing at a deeper scope which
-            // may have meaningful type/kind ops.
-            
-            if (usdInArgs->GetStage())
-            {
-                localPrivateData.reset(new UsdKatanaUsdInPrivateData(usdInArgs->GetRootPrim(),
-                                                                     usdInArgs, privateData));
-                privateData = localPrivateData.get();
-            }
-            else
-            {
-                //TODO, warning
-                return;
-            }
-            
-        }
-
-#endif
 
         UsdKatanaUsdInArgsRefPtr usdInArgs = privateData->GetUsdInArgs();
 
@@ -1661,8 +1479,6 @@ public:
 //-----------------------------------------------------------------------------
 
 DEFINE_GEOLIBOP_PLUGIN(UsdInOp)
-DEFINE_GEOLIBOP_PLUGIN(UsdInBootstrapOp)
-DEFINE_GEOLIBOP_PLUGIN(UsdInMaterialGroupBootstrapOp)
 DEFINE_GEOLIBOP_PLUGIN(UsdInBuildIntermediateOp)
 DEFINE_GEOLIBOP_PLUGIN(UsdInAddViewerProxyOp)
 DEFINE_GEOLIBOP_PLUGIN(UsdInUpdateGlobalListsOp);
@@ -1671,8 +1487,6 @@ DEFINE_ATTRIBUTEFUNCTION_PLUGIN(FlushStageFnc);
 void registerPlugins()
 {
     REGISTER_PLUGIN(UsdInOp, "UsdIn", 0, 1);
-    REGISTER_PLUGIN(UsdInBootstrapOp, "UsdIn.Bootstrap", 0, 1);
-    REGISTER_PLUGIN(UsdInMaterialGroupBootstrapOp, "UsdIn.BootstrapMaterialGroup", 0, 1);
     REGISTER_PLUGIN(UsdInBuildIntermediateOp, "UsdIn.BuildIntermediate", 0, 1);
     REGISTER_PLUGIN(UsdInAddViewerProxyOp, "UsdIn.AddViewerProxy", 0, 1);
     REGISTER_PLUGIN(UsdInUpdateGlobalListsOp, "UsdIn.UpdateGlobalLists", 0, 1);
