@@ -30,12 +30,11 @@
 #include "usdKatana/cache.h"
 
 #include <pxr/base/tf/pyStaticTokens.h>
-
-#include <boost/python.hpp>
+#include <pxr/external/boost/python.hpp>
 
 #include <FnAttribute/suite/FnAttributeSuite.h>  // UsdKatana import crashes without this include
 
-using namespace boost::python;
+using namespace PXR_BOOST_NAMESPACE::python;
 
 PXR_NAMESPACE_USING_DIRECTIVE
 

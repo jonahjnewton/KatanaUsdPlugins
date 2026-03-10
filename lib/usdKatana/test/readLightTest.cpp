@@ -28,9 +28,9 @@ protected:
         UsdStageRefPtr stage = UsdStage::Open(assetPath);
         UsdShadeShader shaderDef = UsdShadeShader::Get(stage, SdfPath("/FnTestRectLight"));
 
-        auto results = UsdShadeShaderDefUtils::GetNodeDiscoveryResults(
+        const auto results = UsdShadeShaderDefUtils::GetDiscoveryResults(
             shaderDef, stage->GetRootLayer()->GetRealPath());
-        for (auto& result : results)
+        for (const auto& result : results)
         {
             _sdrRegistry->AddDiscoveryResult(result);
         }
@@ -137,7 +137,7 @@ TEST_F(ReadLightTest, ReadTypelessMeshLight)
     ASSERT_TRUE(materialAttrs.isValid());
     FnAttribute::StringAttribute lightShaderName = materialAttrs.getChildByName("usdLightShader");
     ASSERT_TRUE(lightShaderName.isValid());
-    ASSERT_EQ(lightShaderName.getValue("", false), "MeshLight");
+    ASSERT_EQ(lightShaderName.getValue("", false), "UsdLuxMeshLight");
     FnAttribute::GroupAttribute lightParamAttrs = materialAttrs.getChildByName("usdLightParams");
     ASSERT_TRUE(lightParamAttrs.isValid());
 

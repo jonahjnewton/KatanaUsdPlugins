@@ -30,7 +30,6 @@
 #include <pxr/base/tf/pathUtils.h>
 #include <pxr/base/tf/token.h>
 #include <pxr/base/tf/type.h>
-#include <pxr/usd/ndr/registry.h>
 #include <pxr/usd/sdr/registry.h>
 #include <pxr/usd/sdr/shaderProperty.h>
 #include <pxr/usd/usdShade/connectableAPI.h>
@@ -148,8 +147,8 @@ ShaderWidgetInfo GetWidgetInfoFromShaderInputProperty(
     }
     else
     {
-        NdrSdfTypeIndicator sdfTypePair = shaderInput->GetTypeAsSdfType();
-        std::string shaderInputType = sdfTypePair.first.GetCPPTypeName();
+        const SdrSdfTypeIndicator sdfTypeIndicator{shaderInput->GetTypeAsSdfType()};
+        const std::string& shaderInputType{sdfTypeIndicator.GetSdfType().GetCPPTypeName()};
 
         static const std::map<std::string, std::string> widgetTypes = {
             {"std::string", "string"},
@@ -305,7 +304,7 @@ void UsdRenderInfoPlugin::fillShaderInputNames(
     {
         return;
     }
-    NdrTokenVec shaderInputs = shader->GetInputNames();
+    const SdrTokenVec& shaderInputs{shader->GetShaderInputNames()};
     shaderInputNames.reserve(shaderInputs.size());
     for (const auto& token : shaderInputs)
     {
@@ -347,11 +346,11 @@ void UsdRenderInfoPlugin::fillShaderTagsFromUsdShaderProperty(
     // second element, a TfToken, will be empty. In the second scenario, the
     // Sdf type will be set to Token to indicate an unclean mapping, and the
     // second element will be set to the original type returned by GetType().
-    // From USD code: (So we know what an NdrSdfTypeIndicator is in the future!)
-    // typedef std::pair<SdfValueTypeName, TfToken> NdrSdfTypeIndicator;
-    NdrSdfTypeIndicator sdfTypePair = shaderProperty->GetTypeAsSdfType();
+    // From USD code: (So we know what an SdrSdfTypeIndicator is in the future!)
+    // typedef std::pair<SdfValueTypeName, TfToken> SdrSdfTypeIndicator;
+    const SdrSdfTypeIndicator sdfTypeIndicator{shaderProperty->GetTypeAsSdfType()};
     std::string sdfType;
-    if (sdfTypePair.second.IsEmpty())
+    if (sdfTypeIndicator.HasSdfType())
     {
         // Scenario 1
         if (isOutput && shaderProperty->GetType().GetString() == "terminal")
@@ -360,7 +359,7 @@ void UsdRenderInfoPlugin::fillShaderTagsFromUsdShaderProperty(
         }
         else
         {
-            sdfType = sdfTypePair.first.GetType().GetTypeName();
+            sdfType = sdfTypeIndicator.GetSdfType().GetType().GetTypeName();
         }
     }
     else
@@ -369,7 +368,7 @@ void UsdRenderInfoPlugin::fillShaderTagsFromUsdShaderProperty(
         // In Scenario 2 there is no mapping, which if this is a terminal
         // we would like to use the name of the terminal as the tag
         // such that we cant connect surface to displacement for example.
-        sdfType = sdfTypePair.second.GetString();
+        sdfType = sdfTypeIndicator.GetSdrType().GetString();
         if (sdfType == "terminal")
         {
             sdfType = shaderProperty->GetName();
@@ -410,7 +409,7 @@ void UsdRenderInfoPlugin::fillShaderOutputNames(
     {
         return;
     }
-    NdrTokenVec shaderOutputs = shader->GetOutputNames();
+    const SdrTokenVec& shaderOutputs{shader->GetShaderOutputNames()};
     shaderOutputNames.reserve(shaderOutputs.size());
     for (const auto& token : shaderOutputs)
     {
@@ -471,7 +470,7 @@ bool UsdRenderInfoPlugin::buildRendererObjectInfo(
             name, TfToken("glslfx"));
         if (shader)
         {
-            const NdrTokenVec inputNames = shader->GetInputNames();
+            const SdrTokenVec& inputNames{shader->GetShaderInputNames()};
             for (const TfToken& inputName : inputNames)
             {
                 SdrShaderPropertyConstPtr shaderInput =

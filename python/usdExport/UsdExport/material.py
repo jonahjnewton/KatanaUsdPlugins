@@ -360,7 +360,7 @@ def AddParameterToShader(shaderParamName, paramAttr, shader, shaderId=None,
     @type shader: C{UsdShade.Shader}
     @type shaderId: C{str}
     @type paramName: C{str}
-    @type sdfType: C{NdrSdfTypeIndicator}
+    @type sdfType: C{SdrSdfTypeIndicator}
     @type target: C{str}
     @rtype: C{Usd.Shader.Input} or C{None}
     @param shaderParamName: The parameter name as it appears on the shader.
@@ -737,7 +737,7 @@ def AddMaterialInterfaces(stage, parametersAttr, interfacesAttr, materialNodesAt
                 value = sourceShaderPort.Get()
                 materialPort.Set(value)
             elif sdrShader:
-                shaderNodeInput = sdrShader.GetInput(sourceParamName)
+                shaderNodeInput = sdrShader.GetShaderInput(sourceParamName)
                 materialPort.Set(shaderNodeInput.GetDefaultValue())
 
         if groupName:
@@ -791,21 +791,21 @@ def GetShaderAttrSdfType(shaderId, shaderAttr, sourceType=None, isOutput=False):
         # second scenario, the Sdf type will be set to Token to indicate an
         # unclean mapping, and the second element will be set to the original
         # type returned by  GetType().
-        # From USD code: (So we know what an NdrSdfTypeIndicator is in the future)
-        # typedef std::pair<SdfValueTypeName, TfToken> NdrSdfTypeIndicator;
+        # From USD code: (So we know what an SdrSdfTypeIndicator is in the future)
+        # typedef std::pair<SdfValueTypeName, TfToken> SdrSdfTypeIndicator;
         if isOutput:
-            shaderOutput = shader.GetOutput(shaderAttr)
+            shaderOutput = shader.GetShaderOutput(shaderAttr)
             if shaderOutput:
-                return shaderOutput.GetTypeAsSdfType()[0]
+                return shaderOutput.GetTypeAsSdfType().GetSdfType()
             log.warning(
                 "Unable to read output %s on shader %s in the Sdr.Registry.",
                 shaderAttr,
                 shaderId,
             )
             return None
-        shaderInput = shader.GetInput(shaderAttr)
+        shaderInput = shader.GetShaderInput(shaderAttr)
         if shaderInput:
-            return shaderInput.GetTypeAsSdfType()[0]
+            return shaderInput.GetTypeAsSdfType().GetSdfType()
         log.warning(
             "Unable to read input %s on shader %s in the Sdr.Registry.",
             shaderAttr,

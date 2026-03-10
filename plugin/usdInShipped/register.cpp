@@ -55,6 +55,7 @@
 #include <pxr/usd/usdLux/domeLight.h>
 #include <pxr/usd/usdLux/geometryLight.h>
 #include <pxr/usd/usdLux/lightFilter.h>
+#include <pxr/usd/usdLux/meshLightAPI.h>
 #include <pxr/usd/usdLux/rectLight.h>
 #include <pxr/usd/usdLux/sphereLight.h>
 #include <pxr/usd/usdShade/material.h>
@@ -87,6 +88,7 @@ DEFINE_GEOLIBOP_PLUGIN(UsdInCore_PointsOp)
 DEFINE_GEOLIBOP_PLUGIN(UsdInCore_BasisCurvesOp)
 DEFINE_GEOLIBOP_PLUGIN(UsdInCore_LookOp)
 DEFINE_GEOLIBOP_PLUGIN(UsdInCore_LightOp)
+DEFINE_GEOLIBOP_PLUGIN(UsdInCore_MeshLightOp)
 DEFINE_GEOLIBOP_PLUGIN(UsdInCore_LightFilterOp)
 // UsdGeom Primitives
 DEFINE_GEOLIBOP_PLUGIN(UsdInCore_PrimitiveOp)
@@ -114,6 +116,7 @@ void registerPlugins()
     USD_OP_REGISTER_PLUGIN(UsdInCore_BasisCurvesOp, "UsdInCore_BasisCurvesOp", 0, 1);
     USD_OP_REGISTER_PLUGIN(UsdInCore_LookOp, "UsdInCore_LookOp", 0, 1);
     USD_OP_REGISTER_PLUGIN(UsdInCore_LightOp, "UsdInCore_LightOp", 0, 1);
+    USD_OP_REGISTER_PLUGIN(UsdInCore_MeshLightOp, "UsdInCore_MeshLightOp", 0, 1);
     USD_OP_REGISTER_PLUGIN(UsdInCore_LightFilterOp, "UsdInCore_LightFilterOp", 0, 1);
     // UsdGeom Primitives
     USD_OP_REGISTER_PLUGIN(UsdInCore_PrimitiveOp, "UsdInCore_PrimitiveOp", 0, 1);
@@ -145,6 +148,7 @@ void registerPlugins()
     UsdKatanaUsdInPluginRegistry::RegisterUsdType<UsdGeomPlane>("UsdInCore_PrimitiveOp");
 
     UsdKatanaUsdInPluginRegistry::RegisterUsdSchema<UsdLuxLightAPI>("UsdInCore_LightOp");
+    UsdKatanaUsdInPluginRegistry::RegisterUsdSchema<UsdLuxMeshLightAPI>("UsdInCore_MeshLightOp");
 
     UsdKatanaUsdInPluginRegistry::RegisterUsdType<UsdGeomCamera>("UsdInCore_CameraOp");
 

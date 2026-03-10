@@ -126,6 +126,14 @@ If this is not set, you may experience issues using the Python libraries,
 most notably for the `usdKatana` module. This value defaults to `pxr`, so if
 you are using a default USD build, it will work without setting this value.
 
+The `LIB_PREFIX` option allows you to specify a prefix for generated
+library file names. This is useful when using other libraries that are linked
+to the built-in KatanaUsdPlugins libraries, as it allows you to match the
+expected library naming convention. For instance, if external libraries expect
+to link against the built-in KatanaUsdPlugins library `FnusdKatana.so`, set
+`-DLIB_PREFIX="Fn"` during CMake configuration to generate libraries with
+the appropriate `Fn` prefix.
+
 ### Advanced Dependencies
 
 The following dependencies are required if you are not using the simple build

@@ -35,6 +35,7 @@ pxr_plugin(${PXR_PACKAGE}
         material.cpp
         materialsGroup.cpp
         mesh.cpp
+        meshLight.cpp
         volume.cpp
         openVDBAsset.cpp
         model.cpp

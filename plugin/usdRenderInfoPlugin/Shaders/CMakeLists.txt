@@ -6,6 +6,7 @@ pxr_katana_install_plugin_resources(
         UsdLuxDistantLight.args
         UsdLuxDomeLight.args
         UsdLuxGeometryLight.args
+        UsdLuxMeshLight.args
         UsdLuxRectLight.args
         UsdLuxSphereLight.args
     PLUGIN_TYPE Shaders

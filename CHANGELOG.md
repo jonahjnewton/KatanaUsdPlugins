@@ -1,5 +1,36 @@
 # Change List
 
+# 24.05_fn7 - 24.05_PySide_fn6 - 25.08_fn4
+
+- ID-611759 - When converting material connections via the KatanaToUsd node, component type port connections would not be retained.
+- ID-608245 - Add `LIB_PREFIX` build option to specify a prefix for KatanaUsdPlugins library file names.
+- ID-612610 - Lighting Tools manipulators in the **Viewer** tab now support USD lights that are generated with UsdLight nodes.
+- ID-612609 - Center of Interest manipulator in the **Viewer** tab now supports USD cameras and USD lights that are generated with UsdCamera and UsdLight nodes respectively.a light filter reference location pointing to the converted light filter reference location is created under a light. USD light filters' filterLink collection members are converted to the equivalent linking attributes on the Katana side
+
+# 25.08_fn3
+
+- ID-610644 - When lightLink or shadowLink collection's includeRoot attribute was set to False, and the membershipExpression and includes/excludes properties were set, includes/excludes values were not converted to corresponding lightLinking onCEL/offCEL attributes.
+- ID-610996 - UsdInBootstrapOp and UsdInMaterialGroupBootsrapOp have been removed since they were long since deprecated and contained unreachable code.
+
+# 25.08_fn2
+
+- ID-608368 - Names for attributes `prmanLightfilterShader` and `prmanLightfilterParams` were incorrectly capitalised as `prmanLightFilterShader` and `prmanLightFilterParams`
+- ID-608485 - A new limitPopulationToModelHierarchy checkbox parameter has been introduced in the UsdIn and UsdToKatana node types. If the parameter (checked by default) is unchecked, the entire USD Stage will be traversed to populate the light and camera global lists on the `/root/world` scene graph location.
+- ID-609505 - When importing RenderMan Light filters from USD to Katana, if the light filter did not have any filterLink collection members, it was not shown as disabled in the light list.
+- ID-609503 - When adopting USD-imported RenderMan Light filters for editing in GafferThree, the light filter parameters were not populated and a Python exception were raised.
+- ID-583839 - Add a UsdIn Op plugin to read prims with `MeshLightAPI` schema applied. This creates a 'Light' child location with a `geometry.areaLightGeometrySource` attribute that points to the source mesh.
+- ID-595534 - Update `cmake_minimum_required` to 3.31
+- ID-609448 - Adds UsdLuxMeshLightAPI args file.
+- ID-609448 - Update ReadLightTest to expect UsdLuxMeshLight shader when reading in a typeless meshlight.
+- ID-607550 - Update lightList with `filterLink` information and fix USD Collection to Katana lightList conversion.
+- ID-609853 - When a light location was converted from USD to Katana via a UsdToKatana or UsdIn node, the Katana `geoShadowEnabled` attribute was not set to the equivalent `collection:shadowLink:includeRoot` USD property.
+- ID-607550 - Allow importing USD light filters that are outside child hierarchy of the light prim. For such light filters, we create light filter reference locations as a child of the light location and specify the imported light filter path as its `referencePath` attribute value. We also populate `lightList` entries to include filter reference entries.
+
+# 25.08_fn1
+
+- ID-604744 - Various upgrades for USD 25.08 support
+- ID-601120 - Boost regex and Boost filesystem usage has been replaced with STL counterparts.
+
 # 23.05_fn9 - 24.05_fn6 - 24.05_PySide_fn5
 
 - ID-605970 - The UsdIn node assetResolverContext parameter has been upgraded to assetResolverContexts and been upgraded from a `string` to a `stringarray` parameter.  The upgrade script can be found in the KatanaUsdPlugins repository.

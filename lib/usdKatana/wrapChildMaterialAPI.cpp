@@ -21,24 +21,21 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#include "pxr/usd/usd/schemaBase.h"
 #include "usdKatana/childMaterialAPI.h"
 
-#include "pxr/usd/sdf/primSpec.h"
-
-#include "pxr/base/tf/pyAnnotatedBoolResult.h"
-#include "pxr/base/tf/pyContainerConversions.h"
-#include "pxr/base/tf/pyResultConversions.h"
-#include "pxr/base/tf/pyUtils.h"
-#include "pxr/base/tf/wrapTypeHelpers.h"
-#include "pxr/usd/usd/pyConversions.h"
-
-#include <boost/python.hpp>
+#include <pxr/base/tf/pyAnnotatedBoolResult.h>
+#include <pxr/base/tf/pyContainerConversions.h>
+#include <pxr/base/tf/pyResultConversions.h>
+#include <pxr/base/tf/pyUtils.h>
+#include <pxr/base/tf/wrapTypeHelpers.h>
+#include <pxr/external/boost/python.hpp>
+#include <pxr/usd/sdf/primSpec.h>
+#include <pxr/usd/usd/pyConversions.h>
+#include <pxr/usd/usd/schemaBase.h>
 
 #include <string>
 
-using namespace boost::python;
-
+using namespace PXR_BOOST_NAMESPACE::python;
 PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace {

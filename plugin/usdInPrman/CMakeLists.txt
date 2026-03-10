@@ -16,6 +16,8 @@ pxr_plugin(${PXR_PACKAGE}
         usdRi
         ${vtKatana_LIBRARY}
 
+        Boost::thread
+
     PRIVATE_HEADERS
         declarePackageOps.h
 

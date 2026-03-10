@@ -31,7 +31,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <map>
+#include <regex>
 #include <sstream>
 #include <unordered_map>
 
@@ -56,6 +58,7 @@
 #include <pxr/usd/usd/collectionAPI.h>
 #include <pxr/usd/usd/modelAPI.h>
 #include <pxr/usd/usd/prim.h>
+#include <pxr/usd/usd/primRange.h>
 #include <pxr/usd/usd/relationship.h>
 #include <pxr/usd/usdGeom/boundable.h>
 #include <pxr/usd/usdGeom/camera.h>
@@ -75,9 +78,6 @@
 #include <pxr/usd/usdUtils/pipeline.h>
 
 #include <FnLogging/FnLogging.h>
-
-#include <boost/filesystem.hpp>
-#include <boost/regex.hpp>
 
 #include "vtKatana/array.h"
 #include "vtKatana/value.h"
@@ -227,30 +227,30 @@ static const std::string _ResolveAssetPath(const SdfAssetPath& assetPath)
         // assetPath points to a UDIM set.  We find the first tile, with <UDIM>
         // replaced by an ID 1xxx, resolve that path, and return the resolved
         // path with 1xxx re-replaced again with <UDIM>.
-        boost::filesystem::path boostPath(rawPath);
-        boost::filesystem::path dirPath = boostPath.parent_path();
-        if (boost::filesystem::exists(dirPath))
+        const std::filesystem::path fPath(rawPath);
+        const std::filesystem::path dirPath = fPath.parent_path();
+        if (std::filesystem::exists(dirPath))
         {
-            boost::filesystem::path filterPath(rawPath);
+            const std::filesystem::path filterPath(rawPath);
             std::string filter = filterPath.filename().string();
             size_t filterSize = filter.size();
             filter.replace(udimIdx - dirPath.string().size() - 1, 6,
                            "1\\d\\d\\d");
 
-            const boost::regex regexFilter(filter);
+            const std::regex regexFilter(filter);
 
-            boost::filesystem::directory_iterator beginIt{dirPath};
-            boost::filesystem::directory_iterator endIt;
+            const std::filesystem::directory_iterator beginIt{dirPath};
+            const std::filesystem::directory_iterator endIt;
             for (auto it = beginIt; it != endIt; ++it)
             {
-                if (!boost::filesystem::is_regular_file(it->status()))
+                if (!std::filesystem::is_regular_file(it->status()))
                     continue;
 
-                boost::smatch what;
+                std::smatch what;
                 const std::string path = it->path().string();
                 const std::string filename = it->path().filename().string();
                 if ((filename.size() == (filterSize - 2)) &&
-                    boost::regex_match(filename, what, regexFilter))
+                    std::regex_match(filename, what, regexFilter))
                 {
                     ArResolverScopedCache resolverCache;
                     ArResolver& resolver = ArGetResolver();
@@ -1016,8 +1016,9 @@ std::string UsdKatanaUtils::GenerateShadingNodeHandle(const UsdPrim& shadingNode
     return name;
 }
 
-void
-_FindCameraPaths_Traversal( const UsdPrim &prim, SdfPathVector *result )
+void _FindCameraPaths_Traversal(const UsdPrim& prim,
+                                const bool traverseModelHierarchyOnly,
+                                SdfPathVector* const result)
 {
     // Recursively traverse model hierarchy for camera prims.
     // Note 1: this requires that either prim types be lofted above
@@ -1026,11 +1027,6 @@ _FindCameraPaths_Traversal( const UsdPrim &prim, SdfPathVector *result )
     //         We have made this restriction consciously to reduce the
     //         latency of camera-enumeration
 
-    // If set, this allows for better traversal for global attributes (camera list and light lists)
-    // by utilizing USD Prim children filters to check for prims in the model hierarchy only,
-    // rather than the default Prim child traversal.
-    static const bool traverseModelHierarchyOnly =
-        TfGetenvBool("KATANA_USD_GLOBALS_TRAVERSE_MODEL_HIERARCHY", true);
     auto flags = UsdPrimDefaultPredicate;
     if (traverseModelHierarchyOnly)
     {
@@ -1040,24 +1036,25 @@ _FindCameraPaths_Traversal( const UsdPrim &prim, SdfPathVector *result )
         if (child->IsA<UsdGeomCamera>()) {
             result->push_back(child->GetPath());
         }
-        _FindCameraPaths_Traversal(*child, result);
+        _FindCameraPaths_Traversal(*child, traverseModelHierarchyOnly, result);
     }
 }
 
-SdfPathVector UsdKatanaUtils::FindCameraPaths(const UsdStageRefPtr& stage)
+SdfPathVector UsdKatanaUtils::FindCameraPaths(const UsdStageRefPtr& stage,
+                                              const bool traverseModelHierarchyOnly)
 {
     SdfPathVector result;
-    _FindCameraPaths_Traversal( stage->GetPseudoRoot(), &result );
+    _FindCameraPaths_Traversal(stage->GetPseudoRoot(), traverseModelHierarchyOnly, &result);
     return result;
 }
 
 // This works like UsdLuxListAPI::ComputeLightList() except it tries to
 // maintain the order discovered during traversal.
-static void
-_Traverse(const UsdPrim &prim,
-          UsdLuxListAPI::ComputeMode mode,
-          std::set<SdfPath, SdfPath::FastLessThan> &seen,
-          SdfPathVector *lights)
+static void _Traverse(const UsdPrim& prim,
+                      const UsdLuxListAPI::ComputeMode mode,
+                      const bool traverseModelHierarchyOnly,
+                      std::set<SdfPath, SdfPath::FastLessThan>& seen,
+                      SdfPathVector* const lights)
 {
     if (!prim)
         return;
@@ -1093,12 +1090,6 @@ _Traverse(const UsdPrim &prim,
     }
     // Traverse descendants.
     auto flags = UsdPrimIsActive && !UsdPrimIsAbstract && UsdPrimIsDefined;
-
-    // If set, this allows for better traversal for global attributes (camera list and light lists)
-    // by utilizing USD Prim children filters to check for prims in the model hierarchy only,
-    // rather than the default Prim child traversal.
-    static const bool traverseModelHierarchyOnly =
-        TfGetenvBool("KATANA_USD_GLOBALS_TRAVERSE_MODEL_HIERARCHY", true);
     if (traverseModelHierarchyOnly && mode == UsdLuxListAPI::ComputeModeConsultModelHierarchyCache)
     {
         // When consulting the cache we only traverse model hierarchy.
@@ -1110,11 +1101,12 @@ _Traverse(const UsdPrim &prim,
     }
     for (const UsdPrim &child:
              prim.GetFilteredChildren(UsdTraverseInstanceProxies(flags))) {
-        _Traverse(child, mode, seen, lights);
+        _Traverse(child, mode, traverseModelHierarchyOnly, seen, lights);
     }
 }
 
-SdfPathVector UsdKatanaUtils::FindLightPaths(const UsdStageRefPtr& stage)
+SdfPathVector UsdKatanaUtils::FindLightPaths(const UsdStageRefPtr& stage,
+                                             const bool traverseModelHierarchyOnly)
 {
 /* XXX -- ComputeLightList() doesn't try to maintain an order.  That
           should be okay for lights but it does cause differences in
@@ -1135,8 +1127,11 @@ SdfPathVector UsdKatanaUtils::FindLightPaths(const UsdStageRefPtr& stage)
     SdfPathVector result;
     std::set<SdfPath, SdfPath::FastLessThan> seen;
     for (const auto &child: stage->GetPseudoRoot().GetChildren()) {
-        _Traverse(child, UsdLuxListAPI::ComputeModeConsultModelHierarchyCache,
-                  seen, &result);
+        _Traverse(child,
+                  UsdLuxListAPI::ComputeModeConsultModelHierarchyCache,
+                  traverseModelHierarchyOnly,
+                  seen,
+                  &result);
     }
     return result;
 }
@@ -1584,7 +1579,7 @@ void UsdKatanaUtils::ShaderToAttrsBySdr(const UsdPrim& prim,
     shaderBuilder.SetUSDTimeCode(currentTimeCode);
     const std::string& shaderContext = sdrNode->GetContext().GetString();
 
-    for (const auto& inputNameToken : sdrNode->GetInputNames())
+    for (const auto& inputNameToken : sdrNode->GetShaderInputNames())
     {
         // This block is for building up a vector of potential attribute names
         // (potentialUsdAttributeNames) inside the usd prim being read. Katana supports having
@@ -1666,7 +1661,10 @@ void UsdKatanaUtils::ShaderToAttrsBySdr(const UsdPrim& prim,
     auto rendererItr = s_contextNameToRenderer.find(shaderPrefix);
     shaderPrefix =
         rendererItr != s_contextNameToRenderer.end() ? rendererItr->second : shaderPrefix;
-    const std::string shaderContextCased = TfStringCapitalize(shaderContext);
+    const std::string shaderContextCased =
+        (shaderPrefix == "prman" && shaderContext == "lightFilter")
+            ? "Lightfilter"
+            : TfStringCapitalize(shaderContext);
     attrs.set(shaderPrefix + shaderContextCased + "Shader", FnKat::StringAttribute(shaderId));
     attrs.set(shaderPrefix + shaderContextCased + "Params", shaderBuilder.build());
 }
@@ -1739,7 +1737,7 @@ SdrShaderNodeConstPtr UsdKatanaUtils::GetShaderNodeFromShaderId(const std::strin
     if (!sdrNode)
     {
         sdrNode =
-            sdrRegistry.GetShaderNodeByName(TfToken(shaderId), {}, NdrVersionFilterAllVersions);
+            sdrRegistry.GetShaderNodeByName(TfToken(shaderId), {}, SdrVersionFilterAllVersions);
     }
     if (!sdrNode)
     {
@@ -2292,21 +2290,38 @@ bool UsdKatanaUtilsLightListAccess::SetLinks(const UsdCollectionAPI& collectionA
         // so assume that we do.
         isLinked = true;
     }
-    else {
-        UsdCollectionAPI::MembershipQuery query =
-            collectionAPI.ComputeMembershipQuery();
-        UsdCollectionAPI::MembershipQuery::PathExpansionRuleMap linkMap =
-            query.GetAsPathExpansionRuleMap();
-        for (const auto &entry: linkMap) {
-            if (entry.first == SdfPath::AbsoluteRootPath()) {
+    if (!isLinked)
+    {
+        collectionAPI.GetIncludeRootAttr().Get(&isLinked);
+    }
+    const UsdCollectionAPI::MembershipQuery query = collectionAPI.ComputeMembershipQuery();
+    // same as using UsdCollectionAPI::IsInRelationshipsMode() which is available from 24.11
+    const bool isInRelationshipsMode{query.UsesPathExpansionRuleMap()};
+    if (!isLinked && !isInRelationshipsMode)
+    {
+        const SdfPathSet includedPaths{
+            UsdCollectionAPI::ComputeIncludedPaths(query, _usdInArgs->GetStage())};
+        std::transform(includedPaths.begin(),
+                       includedPaths.end(),
+                       std::back_inserter(onLocations),
+                       [this](const SdfPath& path)
+                       { return UsdKatanaUtils::ConvertUsdPathToKatLocation(path, _usdInArgs); });
+    }
+    else
+    {
+        const UsdCollectionAPI::MembershipQuery::PathExpansionRuleMap& linkMap{
+            query.GetAsPathExpansionRuleMap()};
+        for (const auto& [path, token] : linkMap)
+        {
+            if (path == SdfPath::AbsoluteRootPath())
+            {
                 // Skip property paths
                 continue;
             }
             const std::string location =
-                UsdKatanaUtils::ConvertUsdPathToKatLocation(entry.first, _usdInArgs);
-            const bool on = (entry.second != UsdTokens->exclude);
-            (on ? onLocations : offLocations).push_back(location);
-            isLinked = true;
+                UsdKatanaUtils::ConvertUsdPathToKatLocation(path, _usdInArgs);
+            const bool isIncluded = (token != UsdTokens->exclude);
+            (isIncluded ? onLocations : offLocations).push_back(location);
         }
     }
 
@@ -2328,11 +2343,18 @@ bool UsdKatanaUtilsLightListAccess::SetLinks(const UsdCollectionAPI& collectionA
 
     if (!onLocations.empty() || !offLocations.empty())
     {
-        std::string onStr = onLocations.empty() ? "" : ConvertVectorToString(onLocations);
+        const std::string onStr = onLocations.empty() ? "" : ConvertVectorToString(onLocations);
         _Set("linking." + linkName + ".onCEL", FnAttribute::StringAttribute(onStr));
 
-        std::string offStr = offLocations.empty() ? "" : ConvertVectorToString(offLocations);
+        const std::string offStr = offLocations.empty() ? "" : ConvertVectorToString(offLocations);
         _Set("linking." + linkName + ".offCEL", FnAttribute::StringAttribute(offStr));
+        _Set("linking." + linkName + ".clearUnmatched", FnAttribute::IntAttribute(0));
+        if (prim.IsA<UsdLuxLightFilter>())
+        {
+            _Set("linking.enable.onCEL", FnAttribute::StringAttribute(onStr));
+            _Set("linking.enable.offCEL", FnAttribute::StringAttribute(offStr));
+            _Set("linking.enable.clearUnmatched", FnAttribute::IntAttribute(0));
+        }
     }
 
     return isLinked;

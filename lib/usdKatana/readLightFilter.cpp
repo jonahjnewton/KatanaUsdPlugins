@@ -116,7 +116,6 @@ void UsdKatanaReadLightFilter(const UsdPrim& filterPrim,
     const double currentTime = data.GetCurrentTime();
 
     GroupBuilder materialBuilder;
-    GroupBuilder filterBuilder;
 
     // Gather prman statements
     FnKat::GroupBuilder primStatements;
@@ -125,7 +124,6 @@ void UsdKatanaReadLightFilter(const UsdPrim& filterPrim,
     if (prmanOutputTarget)
     {
         attrs.set("prmanStatements", primStatements.build());
-        materialBuilder.set("prmanLightfilterParams", filterBuilder.build());
     }
     attrs.set("usd", primStatements.build());
 
@@ -143,7 +141,15 @@ void UsdKatanaReadLightFilter(const UsdPrim& filterPrim,
 
     // This attribute makes the light filter adoptable by the GafferThree node.
     FnKat::GroupBuilder gafferBuilder;
-    gafferBuilder.set("packageClass", FnAttribute::StringAttribute("LightFilterPackage"));
+    if (prmanOutputTarget)
+    {
+        const std::string packageClass{filterPrim.GetTypeName().GetString() + "Package"};
+        gafferBuilder.set("packageClass", FnAttribute::StringAttribute(packageClass));
+    }
+    else
+    {
+        gafferBuilder.set("packageClass", FnAttribute::StringAttribute("LightFilterPackage"));
+    }
     attrs.set("info.gaffer", gafferBuilder.build());
 }
 

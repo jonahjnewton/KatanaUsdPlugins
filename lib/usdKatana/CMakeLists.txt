@@ -20,9 +20,7 @@ pxr_shared_library(${PXR_PACKAGE}
         katanaPluginApi
         ${vtKatana_LIBRARY}
         Boost::system
-        Boost::regex
         Boost::thread
-        Boost::filesystem
 
     PUBLIC_CLASSES
         attrMap
@@ -137,6 +135,7 @@ if (BUILD_KATANA_INTERNAL_USD_PLUGINS AND UNIX)
         katanaPluginApi
         katanaOpApi
 
+        Boost::thread
         GTest::gtest
     )
 endif()

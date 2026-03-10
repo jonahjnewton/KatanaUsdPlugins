@@ -56,9 +56,9 @@ static void lightListFnc(UsdKatanaUtilsLightListAccess& lightList)
         UsdLuxLightFilter filter(prim);
         lightList.Set("path", lightList.GetLocation());
         lightList.Set("type", "light filter");
-        bool enabled = lightList.SetLinks(filter.GetFilterLinkCollectionAPI(),
-                                          "lightfilter");
-        lightList.Set("enable", enabled);
+        const bool isEnabled =
+            lightList.SetLinks(filter.GetFilterLinkCollectionAPI(), "lightfilter");
+        lightList.Set("enable", isEnabled);
     }
 }
 

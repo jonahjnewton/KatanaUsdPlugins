@@ -11,6 +11,7 @@ pxr_plugin(${PXR_PACKAGE}
         usdKatana
         katanaPluginApi
         usdGeom
+        usdLux
         ${vtKatana_LIBRARY}
         Boost::system
         Boost::date_time

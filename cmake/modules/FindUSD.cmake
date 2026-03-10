@@ -32,7 +32,6 @@ set(USD_LIBRARIES
     hio
     js
     kind
-    ndr
     pcp
     plug
     pxOsd
@@ -78,21 +77,20 @@ set(USD_hf_DEPENDENCIES plug;tf;trace)
 set(USD_hio_DEPENDENCIES arch;js;plug;tf;vt;trace;ar;hf)
 set(USD_js_DEPENDENCIES tf)
 set(USD_kind_DEPENDENCIES tf;plug)
-set(USD_ndr_DEPENDENCIES tf;plug;vt;work;ar;sdf;Boost::${Boost_PYTHON_COMPONENT})
 set(USD_pcp_DEPENDENCIES tf;trace;vt;sdf;work;ar;Boost::${Boost_PYTHON_COMPONENT};TBB::tbb)
 set(USD_plug_DEPENDENCIES arch;tf;js;trace;work;Boost::${Boost_PYTHON_COMPONENT};TBB::tbb)
 set(USD_pxOsd_DEPENDENCIES tf;gf;vt;Boost::${Boost_PYTHON_COMPONENT})
 set(USD_sdf_DEPENDENCIES arch;tf;gf;trace;vt;work;ar;Boost::${Boost_PYTHON_COMPONENT})
-set(USD_sdr_DEPENDENCIES tf;vt;ar;ndr;sdf;Boost::${Boost_PYTHON_COMPONENT})
+set(USD_sdr_DEPENDENCIES tf;vt;ar;sdf;Boost::${Boost_PYTHON_COMPONENT})
 set(USD_tf_DEPENDENCIES arch;Python::Python;Boost::${Boost_PYTHON_COMPONENT};TBB::tbb)
 set(USD_trace_DEPENDENCIES arch;js;tf;Boost::${Boost_PYTHON_COMPONENT};TBB::tbb)
 set(USD_usd_DEPENDENCIES arch;kind;pcp;sdf;ar;plug;tf;trace;vt;work;Boost::${Boost_PYTHON_COMPONENT};TBB::tbb)
 set(USD_usdGeom_DEPENDENCIES js;tf;plug;vt;sdf;trace;usd;work;Boost::${Boost_PYTHON_COMPONENT};TBB::tbb)
 set(USD_usdHydra_DEPENDENCIES tf;usd;usdShade)
 set(USD_usdImaging_DEPENDENCIES gf;tf;plug;trace;vt;work;hd;pxOsd;sdf;usd;usdGeom;usdLux;usdShade;usdVol;ar;TBB::tbb)
-set(USD_usdLux_DEPENDENCIES tf;vt;ndr;sdf;usd;usdGeom;usdShade)
+set(USD_usdLux_DEPENDENCIES tf;vt;sdf;usd;usdGeom;usdShade)
 set(USD_usdRi_DEPENDENCIES tf;vt;sdf;usd;usdShade;usdGeom;usdLux;Boost::${Boost_PYTHON_COMPONENT})
-set(USD_usdShade_DEPENDENCIES tf;vt;sdf;ndr;sdr;usd;usdGeom)
+set(USD_usdShade_DEPENDENCIES tf;vt;sdf;sdr;usd;usdGeom)
 set(USD_usdSkel_DEPENDENCIES arch;gf;tf;trace;vt;work;sdf;usd;usdGeom;Boost::${Boost_PYTHON_COMPONENT};TBB::tbb)
 set(USD_usdUI_DEPENDENCIES tf;vt;sdf;usd)
 set(USD_usdUtils_DEPENDENCIES arch;tf;gf;sdf;usd;usdGeom;Boost::${Boost_PYTHON_COMPONENT})

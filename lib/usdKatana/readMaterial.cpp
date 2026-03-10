@@ -301,8 +301,17 @@ static void _ProcessShaderConnections(const UsdPrim& prim,
         const TfTokenVector tokens = SdfPath::TokenizeIdentifierAsTokens(connectionId);
         if (tokens.size() >= 2)
         {
-            traversalData.target = _GetRenderTargetFromRenderContext(tokens[0]);
-            traversalData.targetOverwritten = true;
+            const std::string& ctx = _GetRenderTargetFromRenderContext(tokens[0]);
+
+            // Component value types such as base_color:r will override the render context. If we
+            // find two tokens but the context is not valid, retain the context that is currently
+            // available.
+            const bool ctxValid = !ctx.empty();
+            if (ctxValid)
+            {
+                traversalData.target = ctx;
+            }
+            traversalData.targetOverwritten = ctxValid;
         }
         // If we can't find a rendercontext we don't overwrite the target.
         // The method _GetRenderTargetAndShaderType will return the correct target name.

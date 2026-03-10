@@ -197,6 +197,7 @@ function(_install_python LIBRARY_NAME)
             foreach(current_file ${filesToInstall})
                 get_filename_component(filename ${current_file} NAME)
                 add_custom_command(TARGET ${LIBRARY_NAME}
+                    POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy ${current_file}
                         ${installDest}/${filename}
                 )
