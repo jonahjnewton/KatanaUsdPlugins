@@ -1,5 +1,12 @@
 # Change List
 
+# 24.05_fn7 - 24.05_PySide_fn6 - 25.08_fn4
+
+- ID-611759 - When converting material connections via the KatanaToUsd node, component type port connections would not be retained.
+- ID-608245 - Add `LIB_PREFIX` build option to specify a prefix for KatanaUsdPlugins library file names.
+- ID-612610 - Lighting Tools manipulators in the **Viewer** tab now support USD lights that are generated with UsdLight nodes.
+- ID-612609 - Center of Interest manipulator in the **Viewer** tab now supports USD cameras and USD lights that are generated with UsdCamera and UsdLight nodes respectively.a light filter reference location pointing to the converted light filter reference location is created under a light. USD light filters' filterLink collection members are converted to the equivalent linking attributes on the Katana side
+
 # 25.08_fn3
 
 - ID-610644 - When lightLink or shadowLink collection's includeRoot attribute was set to False, and the membershipExpression and includes/excludes properties were set, includes/excludes values were not converted to corresponding lightLinking onCEL/offCEL attributes.

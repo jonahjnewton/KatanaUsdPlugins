@@ -145,27 +145,31 @@ function(pxr_library NAME)
         endif ()
     endif ()
 
-    set(pluginToLibraryPath "")
     if(BUILD_KATANA_INTERNAL_USD_PLUGINS)
-        if(WIN32)
-            set(pluginToLibraryPath "Fn${NAME}.dll")
-        else()
-            set(pluginToLibraryPath "Fn${NAME}.so")
-        endif()
+        set_target_properties(${NAME}
+            PROPERTIES
+            CXX_VISIBILITY_PRESET default
+            CMAKE_C_VISIBILITY_PRESET default
+            CMAKE_VISIBILITY_INLINES_HIDDEN FALSE
+        )
+        set(LIB_PREFIX "Fn")
     else()
-        if(WIN32)
-            set(pluginToLibraryPath "${NAME}.dll")
-        else()
-            set(pluginToLibraryPath "lib${NAME}.so")
+        if(NOT LIB_PREFIX)
+            if(WIN32)
+                set(LIB_PREFIX "")
+            else()
+                set(LIB_PREFIX "lib")
+            endif()
         endif()
+    endif()
+    set_target_properties(${NAME} PROPERTIES PREFIX "${LIB_PREFIX}")
+
+    if(WIN32)
+        set(pluginToLibraryPath "${LIB_PREFIX}${NAME}.dll")
+    else()
+        set(pluginToLibraryPath "${LIB_PREFIX}${NAME}.so")
     endif()
 
-    if(BUILD_KATANA_INTERNAL_USD_PLUGINS)
-        set_target_properties(${NAME} PROPERTIES CXX_VISIBILITY_PRESET default)
-        set_target_properties(${NAME} PROPERTIES CMAKE_C_VISIBILITY_PRESET default)
-        set_target_properties(${NAME} PROPERTIES CMAKE_VISIBILITY_INLINES_HIDDEN FALSE)
-        set_target_properties(${NAME} PROPERTIES PREFIX "Fn")
-    endif()
     _install_resource_files(
         ${NAME}
         "lib"
