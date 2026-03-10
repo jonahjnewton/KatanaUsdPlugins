@@ -21,6 +21,14 @@ class "KatanaAttributeEditorAPI" (
     doc = """Katana-specific transient attributes that enable manipulator support for usd."""
 )
 {
+    uniform string katana:attributeEditor:exclusiveTo (
+        doc = """A string value that stores the node on which to reflect manipulator changes.
+        """
+        customData = {
+            string apiName = "exclusiveTo"
+        }
+    )
+
     uniform string katana:attributeEditor:exclusiveTo:xform (
         doc = """A string value that stores the node on which to reflect xform manipulator changes.
         """
@@ -47,6 +55,30 @@ class "KatanaUsdCameraAPI" (
         origin in the direction it is facing. This defines a point at which the
         camera can be pivoted around or translated towards or away from using
         Katana's transform tools.
+        """
+    )
+}
+
+class "KatanaUsdLightAPI" (
+    customData = {
+        token[] apiSchemaAutoApplyTo = ["LightAPI"]
+        token[] apiSchemaCanOnlyApplyTo = ["LightAPI"]
+    }
+    inherits = </APISchemaBase>
+    doc = """Katana-specific attributes that enable COI and Lighting Tools support for USD lights."""
+)
+{
+    double centerOfInterest = 20.0 (
+        doc = """Center of interest holds a distance extending from the light's
+        origin in the direction it is facing. This defines a point at which the
+        light can be pivoted around or translated towards or away from using
+        Katana's transform tools.
+        """
+    )
+
+    double shadowFallDistance = 10.0 (
+        doc = """Defines a point that extends the center of interest point. Used primarily for UI
+        purposes in Katana's Lighting Tools manipulator (Shadow mode).
         """
     )
 }

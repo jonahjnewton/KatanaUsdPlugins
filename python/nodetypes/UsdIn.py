@@ -163,6 +163,29 @@ nb.setHintsForParameter('prePopulate', {
 
 })
 
+gb.set('limitPopulationToModelHierarchy', FnAttribute.IntAttribute(1))
+nb.setHintsForParameter(
+    'limitPopulationToModelHierarchy',
+    {
+        'widget': 'checkBox',
+        'help': (
+            'If unchecked, the <code>UsdIn.UpdateGlobalLists</code> Op will traverse the entire '
+            'USD stage, rather than just the prims part of the model hierarchy. This affects the '
+            'creation of the <code>lightList</code> and <code>globals.cameraList</code> attributes '
+            'on the <code>/root/world</code> location. To populate the light list, '
+            '<code>UsdLuxLightListAPI</code> can still be used to store the <code>lightList</code> '
+            'property and control the cache behavior via the <code>lightList:cacheBehavior</code> '
+            'property.'
+            '<br><br>'
+            'This functionality can be driven globally by the '
+            '<code>KATANA_USD_GLOBALS_TRAVERSE_MODEL_HIERARCHY</code> environment variable, which, '
+            'if set, takes precedence over this parameter.'
+        ),
+        'conditionalVisOps': _offForArchiveCondVis,
+        'constant': True,
+    },
+)
+
 gb.set('verbose', 0)
 nb.setHintsForParameter('verbose', {
     'widget' : 'checkBox',
@@ -249,6 +272,11 @@ def buildUsdInOpArgsAtGraphState(self, graphState):
 
     gb.set('prePopulate',
             int(self.getParameter('prePopulate').getValue(frameTime)))
+
+    gb.set(
+        'limitPopulationToModelHierarchy',
+        int(self.getParameter('limitPopulationToModelHierarchy').getValue(frameTime)),
+    )
 
     loadedRenderers = RenderingAPI.RenderPlugins.GetRendererPluginNames()
     gb.set('outputTargets',

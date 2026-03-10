@@ -29,6 +29,7 @@
 //
 #include "usdInShipped/declareCoreOps.h"
 
+#include <FnGeolib/util/Path.h>
 #include <FnGeolibServices/FnBuiltInOpArgsUtil.h>
 
 #include <pxr/pxr.h>
@@ -44,18 +45,23 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 USDKATANA_USDIN_PLUGIN_DEFINE(UsdInCore_LightOp, privateData, opArgs, interface)
 {
-    UsdKatanaUsdInArgsRefPtr usdInArgs = privateData.GetUsdInArgs();
+    const UsdKatanaUsdInArgsRefPtr usdInArgs = privateData.GetUsdInArgs();
     UsdKatanaAttrMap attrs;
 
-    UsdPrim prim(privateData.GetUsdPrim());
+    const UsdPrim& prim(privateData.GetUsdPrim());
 
     UsdKatanaReadLight(prim, privateData, attrs);
 
     attrs.toInterface(interface);
 
-
     // Tell UsdIn to skip all children; we'll create them ourselves.
     interface.setAttr("__UsdIn.skipAllChildren", FnKat::IntAttribute(1));
+    if (prim.HasAPI(UsdLuxTokens->MeshLightAPI))
+    {
+        const std::string parentPath{
+            FnGeolibUtil::Path::GetLocationParent(interface.getOutputLocationPath())};
+        interface.setAttr("geometry.areaLightGeometrySource", FnKat::StringAttribute(parentPath));
+    }
 
     UsdLuxLightAPI light(prim);
 
@@ -63,36 +69,14 @@ USDKATANA_USDIN_PLUGIN_DEFINE(UsdInCore_LightOp, privateData, opArgs, interface)
     SdfPathVector filterPaths;
     light.GetFiltersRel().GetForwardedTargets(&filterPaths);
     if (!filterPaths.empty()) {
-        // XXX For now the importAsReferences codepath is disabled.
-        // To support light filter references we need to specify
-        // info.gaffer.packageClass (and possibly more), otherwise
-        // the gaffer infrastructure will mark these references
-        // as orphaned.
-        bool importAsReferences = false;
-        if (importAsReferences) {
-            // Create "light filter reference" child locations
-            // TODO: We also need to handle the case of regular
-            // light filters sitting as children below this light.
-            FnGeolibServices::StaticSceneCreateOpArgsBuilder sscb(false);
-            for (const SdfPath &filterPath: filterPaths) {
-                const std::string ref_location = filterPath.GetName();
-                const std::string filter_location =
-                    UsdKatanaUtils::ConvertUsdPathToKatLocation(filterPath, usdInArgs);
-                sscb.createEmptyLocation(ref_location,
-                    "light filter reference");
-                sscb.setAttrAtLocation(ref_location,
-                    "info.gaffer.referencePath",
-                    FnAttribute::StringAttribute(filter_location));
-            }
-            interface.execOp("StaticSceneCreate", sscb.build());
-        } else {
-            // Expand light filters directly beneath this light.
-            for (const SdfPath& filterPath : filterPaths)
+        // Expand light filters directly beneath this light.
+        const UsdStageRefPtr stage{usdInArgs->GetStage()};
+        for (const SdfPath& filterPath : filterPaths)
+        {
+            if (const UsdPrim filterPrim = stage->GetPrimAtPath(filterPath))
             {
-                if (UsdPrim filterPrim = usdInArgs->GetStage()->GetPrimAtPath(filterPath))
+                if (filterPrim.GetParent() == prim)
                 {
-                    const std::string filterKatPath =
-                        UsdKatanaUtils::ConvertUsdPathToKatLocation(filterPath, privateData);
                     interface.createChild(
                         filterPath.GetName(),
                         "UsdInCore_LightFilterOp",
@@ -100,6 +84,23 @@ USDKATANA_USDIN_PLUGIN_DEFINE(UsdInCore_LightOp, privateData, opArgs, interface)
                         FnKat::GeolibCookInterface::ResetRootFalse,
                         new UsdKatanaUsdInPrivateData(filterPrim, usdInArgs, &privateData),
                         UsdKatanaUsdInPrivateData::Delete);
+                }
+                else
+                {
+                    FnGeolibServices::StaticSceneCreateOpArgsBuilder sscb(false);
+                    const std::string ref_location = filterPath.GetName() + "Reference";
+
+                    const std::string filter_location =
+                        UsdKatanaUtils::ConvertUsdPathToKatLocation(filterPath, usdInArgs);
+                    sscb.createEmptyLocation(ref_location, "light filter reference");
+                    sscb.setAttrAtLocation(ref_location,
+                                           "referencePath",
+                                           FnAttribute::StringAttribute(filter_location));
+                    sscb.setAttrAtLocation(
+                        ref_location,
+                        "info.gaffer.packageClass",
+                        FnAttribute::StringAttribute("LightFilterReferencePackage"));
+                    interface.execOp("StaticSceneCreate", sscb.build());
                 }
             }
         }
@@ -112,10 +113,15 @@ static void lightListFnc(UsdKatanaUtilsLightListAccess& lightList)
     UsdPrim prim = lightList.GetPrim();
     if (prim && (prim.HasAPI<UsdLuxLightAPI>() || prim.GetTypeName() == "Light")) {
         UsdLuxLightAPI light(prim);
-        lightList.Set("path", lightList.GetLocation());
-        lightList.SetLinks(light.GetLightLinkCollectionAPI(), "enable");
-        lightList.Set("enable", true);
-        lightList.SetLinks(light.GetShadowLinkCollectionAPI(), "geoShadowEnable");
+        const std::string location{lightList.GetLocation()};
+        lightList.Set("path",
+                      prim.HasAPI(UsdLuxTokens->MeshLightAPI) ? location + "/light" : location);
+        const bool isLightLinkEnabled =
+            lightList.SetLinks(light.GetLightLinkCollectionAPI(), "enable");
+        lightList.Set("enable", isLightLinkEnabled);
+        const bool isShadowLinkEnabled =
+            lightList.SetLinks(light.GetShadowLinkCollectionAPI(), "geoShadowEnable");
+        lightList.Set("geoShadowEnable", isShadowLinkEnabled);
     }
 
     TfType pxrAovLight = TfType::FindByName("UsdRiPxrAovLight");
