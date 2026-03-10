@@ -1,5 +1,20 @@
 # Change List
 
+# 24.05_fn7 - 24.05_PySide_fn6
+
+- ID-611759 - When converting material connections via the KatanaToUsd node, component type port connections would not be retained.
+- ID-608245 - Add `LIB_PREFIX` build option to specify a prefix for KatanaUsdPlugins library file names.
+- ID-612610 - Lighting Tools manipulators in the **Viewer** tab now support USD lights that are generated with UsdLight nodes.
+- ID-612609 - Center of Interest manipulator in the **Viewer** tab now supports USD cameras and USD lights that are generated with UsdCamera and UsdLight nodes respectively.
+- ID-610644 - When **lightLink** or **shadowLink** collection's **includeRoot** attribute was set to False, and the **membershipExpression** and **includes/excludes** properties were set, **includes/excludes** values were not converted to corresponding **lightLinking onCEL/offCEL** attributes.
+- ID-607550 - UsdToKatana now has support for converting light filters from USD to Katana. If a USD light and an associated light filter do not have a parent-child hierarchy, then on conversion to Katana, a light filter reference location pointing to the converted light filter reference location is created under a light. USD light filters' filterLink collection members are converted to the equivalent linking attributes on the Katana side
+- ID-609853 - When a light location was converted from USD to Katana via a UsdToKatana or UsdIn node, the Katana `geoShadowEnabled` attribute was not set to the equivalent `collection:shadowLink:includeRoot` USD property.
+- ID-583839 - Support has been added for the conversion of USD MeshLights into Katana's geolib equivalent.
+- ID-609503 - When RenderMan Light filters were converted through the UsdIn or UsdToKatana nodes and edited in a GafferThree node, the light filter parameters were not populated and a Python exception were raised.
+- ID-608485 - A new **limitPopulationToModelHierarchy** checkbox parameter has been introduced in the UsdIn and UsdToKatana node types. If the parameter (checked by default) is unchecked, the entire USD Stage will be traversed to populate the light and camera global lists on the `/root/world` scene graph location.
+The behavior matches the pre-existing `KATANA_USD_GLOBALS_TRAVERSE_MODEL_HIERARCHY` environment variable that affects all node instances globally; if the environment variable is set, it overrides the value set in the **limitPopulationToModelHierarchy** parameter in every node.
+- ID-608368 - When RenderMan lights were converted through the UsdIn or UsdToKatana, nodesNames for Renderman attributes `prmanLightfilterShader` and `prmanLightfilterParams` were incorrectly capitalised as `prmanLightFilterShader` and `prmanLightFilterParams`.
+
 # 23.05_fn9 - 24.05_fn6 - 24.05_PySide_fn5
 
 - ID-605970 - The UsdIn node assetResolverContext parameter has been upgraded to assetResolverContexts and been upgraded from a `string` to a `stringarray` parameter.  The upgrade script can be found in the KatanaUsdPlugins repository.

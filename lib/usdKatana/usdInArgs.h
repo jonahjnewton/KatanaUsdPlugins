@@ -31,6 +31,7 @@
 #define USDKATANA_USDIN_ARGS_H
 
 #include <string>
+#include <utility>
 
 #include <pxr/base/tf/refPtr.h>
 #include <pxr/pxr.h>
@@ -108,16 +109,30 @@ public:
         const StringListMap& extraAttributesOrNamespaces,
         const std::vector<TfToken>& materialBindingPurposes,
         bool prePopulate,
+        const bool limitPopulationToModelHierarchy,
         bool verbose,
         const std::set<std::string>& outputTargets,
         const bool evaluateUsdSkelBindings,
         const char* errorMessage = 0)
     {
-        return TfCreateRefPtr(new UsdKatanaUsdInArgs(
-            stage, rootLocation, isolatePath, sessionLocation, sessionAttr, ignoreLayerRegex,
-            currentTime, shutterOpen, shutterClose, motionSampleTimes, extraAttributesOrNamespaces,
-            materialBindingPurposes, prePopulate, verbose, outputTargets, evaluateUsdSkelBindings,
-            errorMessage));
+        return TfCreateRefPtr(new UsdKatanaUsdInArgs(std::move(stage),
+                                                     rootLocation,
+                                                     isolatePath,
+                                                     sessionLocation,
+                                                     std::move(sessionAttr),
+                                                     ignoreLayerRegex,
+                                                     currentTime,
+                                                     shutterOpen,
+                                                     shutterClose,
+                                                     motionSampleTimes,
+                                                     extraAttributesOrNamespaces,
+                                                     materialBindingPurposes,
+                                                     prePopulate,
+                                                     limitPopulationToModelHierarchy,
+                                                     verbose,
+                                                     outputTargets,
+                                                     evaluateUsdSkelBindings,
+                                                     errorMessage));
     }
 
     // bounds computation is kind of important, so we centralize it here.
@@ -184,6 +199,8 @@ public:
         return _prePopulate;
     }
 
+    bool GetLimitPopulationToModelHierarchy() const { return m_limitPopulationToModelHierarchy; }
+
     bool IsVerbose() const {
         return _verbose;
     }
@@ -221,6 +238,7 @@ private:
                        const StringListMap& extraAttributesOrNamespaces,
                        const std::vector<TfToken>& materialBindingPurposes,
                        bool prePopulate,
+                       bool limitPopulationToModelHierarchy,
                        bool verbose,
                        const std::set<std::string>& outputTargets,
                        bool evaluateUsdSkelBindings,
@@ -248,6 +266,7 @@ private:
     std::vector<TfToken> _materialBindingPurposes;
     
     bool _prePopulate;
+    const bool m_limitPopulationToModelHierarchy;
     bool _verbose;
 
     std::set<std::string> _outputTargets;
@@ -279,6 +298,7 @@ struct ArgsBuilder
     UsdKatanaUsdInArgs::StringListMap extraAttributesOrNamespaces;
     std::vector<TfToken> materialBindingPurposes;
     bool prePopulate;
+    bool limitPopulationToModelHierarchy{true};
     bool verbose;
     std::set<std::string> outputTargets;
     bool evaluateUsdSkelBindings;
@@ -298,11 +318,24 @@ struct ArgsBuilder
     UsdKatanaUsdInArgsRefPtr build()
     {
         return UsdKatanaUsdInArgs::New(
-            stage, rootLocation, isolatePath, sessionLocation,
+            stage,
+            rootLocation,
+            isolatePath,
+            sessionLocation,
             sessionAttr.isValid() ? sessionAttr : FnAttribute::GroupAttribute(true),
-            ignoreLayerRegex, currentTime, shutterOpen, shutterClose, motionSampleTimes,
-            extraAttributesOrNamespaces, materialBindingPurposes, prePopulate, verbose,
-            outputTargets, evaluateUsdSkelBindings, errorMessage);
+            ignoreLayerRegex,
+            currentTime,
+            shutterOpen,
+            shutterClose,
+            motionSampleTimes,
+            extraAttributesOrNamespaces,
+            materialBindingPurposes,
+            prePopulate,
+            limitPopulationToModelHierarchy,
+            verbose,
+            outputTargets,
+            evaluateUsdSkelBindings,
+            errorMessage);
     }
 
     void update(UsdKatanaUsdInArgsRefPtr other)
@@ -320,6 +353,7 @@ struct ArgsBuilder
         extraAttributesOrNamespaces = other->GetExtraAttributesOrNamespaces();
         materialBindingPurposes = other->GetMaterialBindingPurposes();
         prePopulate = other->GetPrePopulate();
+        limitPopulationToModelHierarchy = other->GetLimitPopulationToModelHierarchy();
         verbose = other->IsVerbose();
         outputTargets = other->GetOutputTargets();
         evaluateUsdSkelBindings = other->GetEvaluateUsdSkelBindings();

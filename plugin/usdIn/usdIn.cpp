@@ -34,6 +34,8 @@
 #include <memory>
 #include <sstream>
 
+#include <pxr/base/arch/env.h>
+#include <pxr/base/tf/getenv.h>
 #include <pxr/base/tf/pathUtils.h>
 #include <pxr/pxr.h>
 #include <pxr/usd/ar/resolver.h>
@@ -44,6 +46,8 @@
 #include <pxr/usd/usd/variantSets.h>
 #include <pxr/usd/usdGeom/metrics.h>
 #include <pxr/usd/usdGeom/motionAPI.h>
+#include <pxr/usd/usdLux/lightAPI.h>
+#include <pxr/usd/usdLux/tokens.h>
 
 #include <FnGeolib/op/FnGeolibOp.h>
 #include <FnGeolib/util/Path.h>
@@ -210,6 +214,10 @@ static UsdKatanaUsdInArgsRefPtr InitUsdInArgs(const FnKat::GroupAttribute& opArg
     ab.prePopulate =
         FnKat::IntAttribute(opArgs.getChildByName("prePopulate"))
         .getValue(1 /* default prePopulate=yes */ , false);
+
+    ab.limitPopulationToModelHierarchy =
+        FnKat::IntAttribute(opArgs.getChildByName("limitPopulationToModelHierarchy"))
+            .getValue(static_cast<int>(true), false);
 
     ab.isolatePath = FnKat::StringAttribute(
         opArgs.getChildByName("isolatePath")).getValue("", false);
@@ -570,8 +578,13 @@ public:
 
             {
                 std::string opName;
-                const TfToken typeName = prim.GetTypeName();
-                if (!UsdKatanaUsdInPluginRegistry::FindUsdType(typeName, &opName))
+                const TfToken& typeName = prim.GetTypeName();
+                if (prim.HasAPI(UsdLuxTokens->MeshLightAPI))
+                {
+                    // Op plug-in is registered against the MeshLightAPI schema.
+                    UsdKatanaUsdInPluginRegistry::FindSchema(UsdLuxTokens->MeshLightAPI, &opName);
+                }
+                else if (!UsdKatanaUsdInPluginRegistry::FindUsdType(typeName, &opName))
                 {
                     // If there is no type registered, we search through the
                     // applied schemas to see if one of those has an op
@@ -579,7 +592,7 @@ public:
                     // schemas to be registered against an import Op.
                     const auto& appliedSchemas = prim.GetAppliedSchemas();
                     bool foundRegisteredSchema = false;
-                    for (auto& appliedSchemaName : appliedSchemas)
+                    for (const auto& appliedSchemaName : appliedSchemas)
                     {
                         if (UsdKatanaUsdInPluginRegistry::FindSchema(appliedSchemaName, &opName))
                         {
@@ -1019,6 +1032,19 @@ public:
                         new UsdKatanaUsdInPrivateData(child, usdInArgs, privateData),
                         UsdKatanaUsdInPrivateData::Delete);
                 }
+                else
+                {
+                    interface.createChild(
+                        childName,
+                        "UsdInCore_LightFilterOp",
+                        FnKat::GroupBuilder()
+                            .update(opArgs)
+                            .set("staticScene", opArgs.getChildByName("staticScene.c." + childName))
+                            .build(),
+                        FnKat::GeolibCookInterface::ResetRootFalse,
+                        new UsdKatanaUsdInPrivateData(child, usdInArgs, privateData),
+                        UsdKatanaUsdInPrivateData::Delete);
+                }
             }
         }
 
@@ -1124,143 +1150,6 @@ bool UsdInOp::_hasSiteKinds = false;
 
 //-----------------------------------------------------------------------------
 
-/*
- * DEPRECATED
- * This op bootstraps the primary UsdIn op in order to have
- * GeolibPrivateData available at the root op location in UsdIn. Since the
- * GeolibCookInterface API does not currently have the ability to pass
- * GeolibPrivateData via execOp, and we must exec all of the registered plugins
- * to process USD prims, we instead pre-build the GeolibPrivateData for the
- * root location to ensure it is available.
- */
-class UsdInBootstrapOp : public FnKat::GeolibOp
-{
-
-public:
-
-    static void setup(FnKat::GeolibSetupInterface &interface)
-    {
-        interface.setThreading(
-                FnKat::GeolibSetupInterface::ThreadModeConcurrent);
-    }
-
-    static void cook(FnKat::GeolibCookInterface &interface)
-    {
-        ERROR("UsdInBootstrapOp is deprecated please use ExecuteOpDirectExecFnc instead.");
-        return;
-
-        interface.stopChildTraversal();
-
-        boost::shared_lock<boost::upgrade_mutex> 
-            readerLock(UsdKatanaGetStageLock());
-            
-        FnKat::GroupAttribute additionalOpArgs;
-        UsdKatanaUsdInArgsRefPtr usdInArgs =
-            InitUsdInArgs(interface.getOpArg(), additionalOpArgs, interface.getRootLocationPath());
-
-        if (!usdInArgs) {
-            ERROR("Could not initialize UsdIn usdInArgs.");
-            return;
-        }
-        
-        if (!usdInArgs->GetErrorMessage().empty())
-        {
-            ERROR("%s", usdInArgs->GetErrorMessage().c_str());
-            return;
-        }
-
-        FnKat::GroupAttribute opArgs = FnKat::GroupBuilder()
-            .update(interface.getOpArg())
-            .deepUpdate(additionalOpArgs)
-            .set("setOpArgsToInfo", FnAttribute::IntAttribute(1))
-            .build();
-
-        // Extract the basename (string after last '/') from the location
-        // the UsdIn op is configured to run at such that we can create
-        // that child and exec the UsdIn op on it.
-        //
-        std::vector<std::string> tokens;
-        pystring::split(usdInArgs->GetRootLocationPath(), tokens, "/");
-
-        if (tokens.empty())
-        {
-            ERROR(
-                "Could not initialize UsdIn op with "
-                "UsdIn.Bootstrap op.");
-            return;
-        }
-
-        const std::string& rootName = tokens.back();
-
-        interface.createChild(rootName, "UsdIn", opArgs, FnKat::GeolibCookInterface::ResetRootTrue,
-                              new UsdKatanaUsdInPrivateData(usdInArgs->GetRootPrim(), usdInArgs,
-                                                            NULL /* parentData */),
-                              UsdKatanaUsdInPrivateData::Delete);
-    }
-
-};
-
-/*
- * DEPRECATED
- * This op bootstraps the primary UsdIn op in order to have
- * GeolibPrivateData available at the root op location in UsdIn. Since the
- * GeolibCookInterface API does not currently have the ability to pass
- * GeolibPrivateData via execOp, and we must exec all of the registered plugins
- * to process USD prims, we instead pre-build the GeolibPrivateData for the
- * root location to ensure it is available.
- */
-class UsdInMaterialGroupBootstrapOp : public FnKat::GeolibOp
-{
-
-public:
-
-    static void setup(FnKat::GeolibSetupInterface &interface)
-    {
-        interface.setThreading(
-                FnKat::GeolibSetupInterface::ThreadModeConcurrent);
-    }
-
-    static void cook(FnKat::GeolibCookInterface &interface)
-    {
-        ERROR(
-            "UsdInMaterialGroupBootstrapOp is deprecated please use ExecuteOpDirectExecFnc "
-            "instead.");
-        return;
-
-        interface.stopChildTraversal();
-
-        boost::shared_lock<boost::upgrade_mutex> 
-            readerLock(UsdKatanaGetStageLock());
-            
-        FnKat::GroupAttribute additionalOpArgs;
-        UsdKatanaUsdInArgsRefPtr usdInArgs =
-            InitUsdInArgs(interface.getOpArg(), additionalOpArgs, interface.getRootLocationPath());
-
-        if (!usdInArgs) {
-            ERROR("Could not initialize UsdIn usdInArgs.");
-            return;
-        }
-        
-        if (!usdInArgs->GetErrorMessage().empty())
-        {
-            ERROR("%s", usdInArgs->GetErrorMessage().c_str());
-            return;
-        }
-
-        FnKat::GroupAttribute opArgs = FnKat::GroupBuilder()
-            .update(interface.getOpArg())
-            .deepUpdate(additionalOpArgs)
-            .build();
-
-        UsdKatanaUsdInPrivateData privateData(usdInArgs->GetRootPrim(), usdInArgs,
-                                              NULL /* parentData */);
-
-        UsdKatanaUsdInPluginRegistry::ExecuteOpDirectExecFnc("UsdInCore_LooksGroupOp", privateData,
-                                                             opArgs, interface);
-    }
-
-};
-
 class UsdInBuildIntermediateOp : public FnKat::GeolibOp
 {
 public:
@@ -1274,51 +1163,6 @@ public:
     {
         UsdKatanaUsdInPrivateData* privateData =
             static_cast<UsdKatanaUsdInPrivateData*>(interface.getPrivateData());
-
-// If we are exec'ed from katana 2.x from an op which doesn't have
-// UsdKatanaUsdInPrivateData, we need to build some. We normally avoid
-// this case by using the execDirect -- but some ops need to call
-// UsdInBuildIntermediateOp via execOp. In 3.x, they can (and are
-// required to) provide the private data.
-#if KATANA_VERSION_MAJOR < 3
-        
-        // We may be constructing the private data locally -- in which case
-        // it will not be destroyed by the Geolib runtime.
-        // This won't be used directly but rather just filled if the private
-        // needs to be locally built.
-        std::unique_ptr<UsdKatanaUsdInPrivateData> localPrivateData;
-
-        if (!privateData)
-        {
-            
-            FnKat::GroupAttribute additionalOpArgs;
-            auto usdInArgs = UsdInOp::InitUsdInArgs(interface.getOpArg(), additionalOpArgs,
-                                                    interface.getRootLocationPath());
-            auto opArgs = FnKat::GroupBuilder()
-                .update(interface.getOpArg())
-                .deepUpdate(additionalOpArgs)
-                .build();
-            
-            // Construct local private data if none was provided by the parent.
-            // This is a legitmate case for the root of the scene -- most
-            // relevant with the isolatePath pointing at a deeper scope which
-            // may have meaningful type/kind ops.
-            
-            if (usdInArgs->GetStage())
-            {
-                localPrivateData.reset(new UsdKatanaUsdInPrivateData(usdInArgs->GetRootPrim(),
-                                                                     usdInArgs, privateData));
-                privateData = localPrivateData.get();
-            }
-            else
-            {
-                //TODO, warning
-                return;
-            }
-            
-        }
-
-#endif
 
         UsdKatanaUsdInArgsRefPtr usdInArgs = privateData->GetUsdInArgs();
 
@@ -1522,8 +1366,24 @@ public:
             return;
         }
 
+        // If set, this allows for better traversal for global attributes (camera list and light
+        // lists) by utilizing USD Prim children filters to check for prims in the model hierarchy
+        // only, rather than the default Prim child traversal.
+        bool traverseModelHierarchyOnly{usdInArgs->GetLimitPopulationToModelHierarchy()};
+        {
+            static const bool s_hasEnv{ArchHasEnv("KATANA_USD_GLOBALS_TRAVERSE_MODEL_HIERARCHY")};
+            if (s_hasEnv)
+            {
+                static const bool s_traverseModelHierarchyOnly{
+                    TfGetenvBool("KATANA_USD_GLOBALS_TRAVERSE_MODEL_HIERARCHY", true)};
+
+                traverseModelHierarchyOnly = s_traverseModelHierarchyOnly;
+            }
+        }
+
         // Extract camera paths.
-        SdfPathVector cameraPaths = UsdKatanaUtils::FindCameraPaths(stage);
+        const SdfPathVector cameraPaths{
+            UsdKatanaUtils::FindCameraPaths(stage, traverseModelHierarchyOnly)};
         FnKat::StringBuilder cameraListBuilder;
         for (const SdfPath& cameraPath : cameraPaths)
         {
@@ -1550,7 +1410,8 @@ public:
         const std::string& isolatePathString = usdInArgs->GetIsolatePath();
         const SdfPath isolatePath =
             isolatePathString.empty() ? SdfPath::AbsoluteRootPath() : SdfPath(isolatePathString);
-        SdfPathVector lightPaths = UsdKatanaUtils::FindLightPaths(stage);
+        const SdfPathVector lightPaths{
+            UsdKatanaUtils::FindLightPaths(stage, traverseModelHierarchyOnly)};
         stage->LoadAndUnload(SdfPathSet(lightPaths.begin(), lightPaths.end()), SdfPathSet());
         UsdKatanaUtilsLightListEditor lightListEditor(interface, usdInArgs);
         for (const SdfPath& lightPath : lightPaths)
@@ -1562,6 +1423,30 @@ public:
             }
         }
 
+        for (const SdfPath& lightPath : lightPaths)
+        {
+            const UsdPrim prim{stage->GetPrimAtPath(lightPath)};
+            if (prim.IsValid() && prim.HasAPI<UsdLuxLightAPI>())
+            {
+                const UsdLuxLightAPI lightPrim(prim);
+                SdfPathVector filterPaths;
+                lightPrim.GetFiltersRel().GetForwardedTargets(&filterPaths);
+                for (const auto& filterPath : filterPaths)
+                {
+                    if (filterPath.GetParentPath() != lightPath)
+                    {
+                        const SdfPath filterReferencePath(lightPath.GetString() + "/" +
+                                                          filterPath.GetName() + "Reference");
+                        lightListEditor.SetPath(filterReferencePath);
+                        lightListEditor.Set("path",
+                                            lightListEditor.GetLocation(filterReferencePath));
+                        lightListEditor.Set("type", "light filter reference");
+                        lightListEditor.Set("referencePath",
+                                            lightListEditor.GetLocation(filterPath));
+                    }
+                }
+            }
+        }
         lightListEditor.Build();
     }
 };
@@ -1594,8 +1479,6 @@ public:
 //-----------------------------------------------------------------------------
 
 DEFINE_GEOLIBOP_PLUGIN(UsdInOp)
-DEFINE_GEOLIBOP_PLUGIN(UsdInBootstrapOp)
-DEFINE_GEOLIBOP_PLUGIN(UsdInMaterialGroupBootstrapOp)
 DEFINE_GEOLIBOP_PLUGIN(UsdInBuildIntermediateOp)
 DEFINE_GEOLIBOP_PLUGIN(UsdInAddViewerProxyOp)
 DEFINE_GEOLIBOP_PLUGIN(UsdInUpdateGlobalListsOp);
@@ -1604,8 +1487,6 @@ DEFINE_ATTRIBUTEFUNCTION_PLUGIN(FlushStageFnc);
 void registerPlugins()
 {
     REGISTER_PLUGIN(UsdInOp, "UsdIn", 0, 1);
-    REGISTER_PLUGIN(UsdInBootstrapOp, "UsdIn.Bootstrap", 0, 1);
-    REGISTER_PLUGIN(UsdInMaterialGroupBootstrapOp, "UsdIn.BootstrapMaterialGroup", 0, 1);
     REGISTER_PLUGIN(UsdInBuildIntermediateOp, "UsdIn.BuildIntermediate", 0, 1);
     REGISTER_PLUGIN(UsdInAddViewerProxyOp, "UsdIn.AddViewerProxy", 0, 1);
     REGISTER_PLUGIN(UsdInUpdateGlobalListsOp, "UsdIn.UpdateGlobalLists", 0, 1);
