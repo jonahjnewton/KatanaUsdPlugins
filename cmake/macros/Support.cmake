@@ -263,7 +263,7 @@ function(pxr_library NAME)
             ${pythonWrapperModuleName}
             PRIVATE
             $<$<CXX_COMPILER_ID:GNU>:-Wall -Wno-deprecated -Wno-unused-local-typedefs>
-            $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4244 /wd4305 /wd4100 /wd4459 /wd4996 /DWIN32_LEAN_AND_MEAN /DNOMINMAX>
+            $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4244 /wd4305 /wd4100 /wd4459 /wd4996 /EHsc /DWIN32_LEAN_AND_MEAN /DNOMINMAX>
             $<$<CONFIG:Debug>:-DBOOST_DEBUG_PYTHON> # needed on Windows to help with the autolink library name (even though adding BOOST_ALL_NO_LIB doesn't seem to disable this)
         )
         target_link_libraries(
