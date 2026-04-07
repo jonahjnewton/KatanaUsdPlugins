@@ -21,7 +21,7 @@
 # language governing permissions and limitations under the Apache License.
 
 
-function(add_boost_interface)
+macro(add_boost_interface)
     if(NOT DEFINED Python3_VERSION_MAJOR)
     message(FATL_ERROR "Unable to read Python3_VERSION_MAJOR from Python "
         "FindPackage, therefore unable to build Boost_PYTHON_COMPONENT")
@@ -72,10 +72,10 @@ function(add_boost_interface)
             thread
             system
         REQUIRED)
-endfunction(add_boost_interface) # add_boost_interface
+endmacro() # add_boost_interface
 
 
-function(add_python_interface)
+macro(add_python_interface)
     if (TARGET Python3::Python)
         return()
     endif()
@@ -125,7 +125,7 @@ function(add_python_interface)
             )
         endif()
     elseif(DEFINED Python3_DIR AND DEFINED Python3_EXECUTABLE)
-        find_package(Python CONFIG REQUIRED)
+        find_package(Python3 CONFIG REQUIRED)
     else()
         message(FATAL_ERROR "Cannot search for Python libraries, must"
             " specify either USE_KATANA_PYTHON to use the Python shipped "
@@ -134,9 +134,9 @@ function(add_python_interface)
             " custom cmake config"
         )
     endif()
-endfunction() #add_python_interface
+endmacro() #add_python_interface
 
-function(add_tbb_interface)
+macro(add_tbb_interface)
     if(USE_KATANA_TBB)
         # We want to create CMake interfaces to make linking neater and to
         # reduce complexity later in the build
@@ -215,10 +215,10 @@ function(add_tbb_interface)
             message(FATAL_ERROR "Unable to find tbb library")
         endif()
     endif() # If USE_KATANA_TBB
-endfunction() #add_tbb_interface
+endmacro() #add_tbb_interface
 
 
-function(add_usd_interface)
+macro(add_usd_interface)
     if(USE_KATANA_USD)
         set(USD_LIBRARY_DIR ${KATANA_API_LOCATION}/bin)
         set(USD_INCLUDE_DIR ${KATANA_API_LOCATION}/external/FnUSD/include)
@@ -240,4 +240,4 @@ function(add_usd_interface)
         endif()
         include(${USD_ROOT}/pxrConfig.cmake)
     endif()
-endfunction() #add_use_interface
+endmacro() #add_use_interface
