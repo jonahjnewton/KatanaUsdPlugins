@@ -136,7 +136,6 @@ function(add_python_interface)
     endif()
 endfunction() #add_python_interface
 
-
 function(add_tbb_interface)
     if(USE_KATANA_TBB)
         # We want to create CMake interfaces to make linking neater and to
@@ -145,6 +144,8 @@ function(add_tbb_interface)
             return()
         endif()
         add_library(TBB::tbb INTERFACE IMPORTED)
+        add_library(TBB::tbbmalloc INTERFACE IMPORTED)
+        add_library(TBB::tbbmalloc_proxy INTERFACE IMPORTED)
         if(KATANA_API_LOCATION)
             if(UNIX)
                 set(tbb_lib_suffix so)
@@ -162,6 +163,24 @@ function(add_tbb_interface)
                     INTERFACE_LINK_LIBRARIES
                         "${KATANA_API_LOCATION}/bin/${tbb_lib_prefix}tbb.${tbb_lib_suffix}"
             )
+            set_target_properties(TBB::tbbmalloc
+                PROPERTIES
+                    INTERFACE_INCLUDE_DIRECTORIES
+                        "${KATANA_API_LOCATION}/external/tbb/include"
+                    INTERFACE_COMPILE_DEFINITIONS
+                        "__TBB_NO_IMPLICIT_LINKAGE=1"
+                    INTERFACE_LINK_LIBRARIES
+                        "${KATANA_API_LOCATION}/bin/${tbb_lib_prefix}tbbmalloc.${tbb_lib_suffix}"
+            )
+            set_target_properties(TBB::tbbmalloc_proxy
+                PROPERTIES
+                    INTERFACE_INCLUDE_DIRECTORIES
+                        "${KATANA_API_LOCATION}/external/tbb/include"
+                    INTERFACE_COMPILE_DEFINITIONS
+                        "__TBB_NO_IMPLICIT_LINKAGE=1"
+                    INTERFACE_LINK_LIBRARIES
+                        "${KATANA_API_LOCATION}/bin/${tbb_lib_prefix}tbbmalloc_proxy.${tbb_lib_suffix}"
+            )
         else()
             message(FATAL_ERROR "KATANA_API_LOCATION must be set if using the"
                 " USE_KATANA_TBB option")
@@ -171,12 +190,26 @@ function(add_tbb_interface)
     else()
         find_package(TBB REQUIRED)
         add_library(TBB::tbb INTERFACE IMPORTED)
+        add_library(TBB::tbbmalloc INTERFACE IMPORTED)
+        add_library(TBB::tbbmalloc_proxy INTERFACE IMPORTED)
         if(TBB_tbb_FOUND)
             set_target_properties(TBB::tbb
                 PROPERTIES
                     INTERFACE_INCLUDE_DIRECTORIES "${TBB_INCLUDE_DIRS}"
                     INTERFACE_COMPILE_DEFINITIONS "__TBB_NO_IMPLICIT_LINKAGE=1"
                     INTERFACE_LINK_LIBRARIES "${TBB_tbb_LIBRARY}"
+            )
+            set_target_properties(TBB::tbbmalloc
+                PROPERTIES
+                    INTERFACE_INCLUDE_DIRECTORIES "${TBB_INCLUDE_DIRS}"
+                    INTERFACE_COMPILE_DEFINITIONS "__TBB_NO_IMPLICIT_LINKAGE=1"
+                    INTERFACE_LINK_LIBRARIES "${TBB_tbbmalloc_LIBRARY}"
+            )
+            set_target_properties(TBB::tbbmalloc_proxy
+                PROPERTIES
+                    INTERFACE_INCLUDE_DIRECTORIES "${TBB_INCLUDE_DIRS}"
+                    INTERFACE_COMPILE_DEFINITIONS "__TBB_NO_IMPLICIT_LINKAGE=1"
+                    INTERFACE_LINK_LIBRARIES "${TBB_tbbmalloc_proxy_LIBRARY}"
             )
         else()
             message(FATAL_ERROR "Unable to find tbb library")
