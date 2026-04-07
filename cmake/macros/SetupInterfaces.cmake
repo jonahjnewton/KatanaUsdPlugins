@@ -109,7 +109,7 @@ function(add_python_interface)
         set(Python3_VERSION_MAJOR ${KATANA_PYTHON_VERSION_MAJOR} PARENT_SCOPE)
         set(Python3_VERSION_MINOR ${KATANA_PYTHON_VERSION_MINOR} PARENT_SCOPE)
     elseif(DEFINED Python3_ROOT_DIR)
-        find_package(Python COMPONENTS Interpreter Development REQUIRED)
+        find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
         if(Python3_INCLUDE_DIRS AND Python3_LIBRARIES AND Python3_EXECUTABLE)
             # add_library(Python::Python INTERFACE IMPORTED)
             set_target_properties(Python3::Python
